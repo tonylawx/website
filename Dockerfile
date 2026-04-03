@@ -14,6 +14,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY server ./server
+COPY shared ./shared
 COPY server.ts ./
 COPY tsconfig.json ./
 COPY next.config.ts ./
