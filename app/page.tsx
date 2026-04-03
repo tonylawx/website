@@ -1,7 +1,6 @@
 "use client";
 
 import { startTransition, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { ReportPage } from "@/components/report-page";
 import type { SecuritySearchResult, SellPutReport } from "@/server/report/types";
 import { Locale, uiCopy } from "@/shared/i18n";
@@ -41,12 +40,10 @@ function getApiBaseUrl() {
 }
 
 export default function Page() {
-  const searchParams = useSearchParams();
-  const initialSymbol = normalizeSymbol(searchParams.get("symbol"));
   const [locale, setLocale] = useState<Locale>("zh");
   const [report, setReport] = useState<SellPutReport | null>(null);
-  const [selectedSymbol, setSelectedSymbol] = useState(initialSymbol);
-  const [query, setQuery] = useState(displaySymbol(initialSymbol));
+  const [selectedSymbol, setSelectedSymbol] = useState(DEFAULT_SYMBOL);
+  const [query, setQuery] = useState(displaySymbol(DEFAULT_SYMBOL));
   const [securities, setSecurities] = useState<SecuritySearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(true);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
@@ -54,6 +51,17 @@ export default function Page() {
   const [reportError, setReportError] = useState("");
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const nextSymbol = normalizeSymbol(params.get("symbol"));
+    setSelectedSymbol(nextSymbol);
+    setQuery(displaySymbol(nextSymbol));
+  }, []);
 
   const results = securities.filter((security) => {
     const normalized = query.trim().toLowerCase();
