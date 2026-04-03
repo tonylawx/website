@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useEffect, useRef, useState } from "react";
+import { IOSInstallBanner } from "@/components/ios-install-banner";
 import { OptionYieldCalculator } from "@/components/option-yield-calculator";
 import { ReportPage } from "@/components/report-page";
 import type { SecuritySearchResult, SellPutReport } from "@/server/report/types";
@@ -225,6 +226,7 @@ export default function Page() {
   return (
     <main style={styles.shell}>
       <section style={styles.paper}>
+        <IOSInstallBanner locale={locale} />
         <div style={styles.topBar}>
           <div style={styles.tabSwitch}>
             <button
