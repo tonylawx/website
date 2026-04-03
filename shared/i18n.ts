@@ -6,7 +6,7 @@ export function normalizeLocale(value?: string | null): Locale {
 
 export const uiCopy = {
   zh: {
-    pageTitle: "卖出看跌期权日报",
+    pageTitle: "卖出看跌期权可行性报告",
     searchLabel: "美股标的",
     searchPlaceholder: "输入代码或公司名，例如 AAPL / Tesla",
     loading: "加载中...",
@@ -15,7 +15,7 @@ export const uiCopy = {
     reportLoadError: "长桥行情拉取失败，请检查凭证、权限或标的代码。",
     installBannerTitle: "iPhone 添加到桌面",
     installBannerBody: "在 Safari 点分享按钮，再选“添加到主屏幕”，就能像 App 一样打开。",
-    reportTab: "日报",
+    reportTab: "可行性报告",
     calculatorTab: "年化收益计算器",
     vciTitle: "波动率综合指数 [VCI]",
     marketTitle: "市场趋势",
@@ -53,7 +53,7 @@ export const uiCopy = {
     calculatorAssumptionBodyCall: "默认按备兑卖 Call 计算：占用名义仓位 = 行权价 × 100 × 张数，不含手续费与滑点。"
   },
   en: {
-    pageTitle: "Daily Sell Put Report",
+    pageTitle: "Sell Put Feasibility Report",
     searchLabel: "US Stock",
     searchPlaceholder: "Enter ticker or company, e.g. AAPL / Tesla",
     loading: "Loading...",
@@ -62,7 +62,7 @@ export const uiCopy = {
     reportLoadError: "Report failed to load.",
     installBannerTitle: "Add to Home Screen",
     installBannerBody: "In Safari, tap Share and then Add to Home Screen to launch it like an app.",
-    reportTab: "Report",
+    reportTab: "Feasibility Report",
     calculatorTab: "Annualized Yield",
     vciTitle: "Volatility Composite Index [VCI]",
     marketTitle: "Market Trend",
