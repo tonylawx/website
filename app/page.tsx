@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useEffect, useRef, useState } from "react";
+import { OptionYieldCalculator } from "@/components/option-yield-calculator";
 import { ReportPage } from "@/components/report-page";
 import type { SecuritySearchResult, SellPutReport } from "@/server/report/types";
 import { Locale, uiCopy } from "@/shared/i18n";
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 const DEFAULT_SYMBOL = "QQQ.US";
 const PROD_API_BASE_URL = "https://option-tools-4jy4.onrender.com";
+type TabKey = "report" | "calculator";
 
 function displaySymbol(symbol: string) {
   return symbol.replace(/\.US$/, "");
@@ -41,6 +43,7 @@ function getApiBaseUrl() {
 
 export default function Page() {
   const [locale, setLocale] = useState<Locale>("zh");
+  const [tab, setTab] = useState<TabKey>("report");
   const [report, setReport] = useState<SellPutReport | null>(null);
   const [selectedSymbol, setSelectedSymbol] = useState(DEFAULT_SYMBOL);
   const [query, setQuery] = useState(displaySymbol(DEFAULT_SYMBOL));
@@ -59,6 +62,8 @@ export default function Page() {
 
     const params = new URLSearchParams(window.location.search);
     const nextSymbol = normalizeSymbol(params.get("symbol"));
+    const nextTab = params.get("tab") === "calculator" ? "calculator" : "report";
+    setTab(nextTab);
     setSelectedSymbol(nextSymbol);
     setQuery(displaySymbol(nextSymbol));
   }, []);
@@ -109,9 +114,10 @@ export default function Page() {
     }
 
     params.set("symbol", selectedSymbol);
+    params.set("tab", tab);
     const nextUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.replaceState(null, "", nextUrl);
-  }, [selectedSymbol]);
+  }, [selectedSymbol, tab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -219,85 +225,106 @@ export default function Page() {
   return (
     <main style={styles.shell}>
       <section style={styles.paper}>
-        <div ref={boxRef} style={styles.searchWrap}>
-          <div style={styles.searchTopRow}>
-            <label htmlFor="symbol-search" style={styles.searchLabel}>
-              {text.searchLabel}
-            </label>
-            <div style={styles.localeSwitch}>
-              <button
-                type="button"
-                onClick={() => setLocale("zh")}
-                style={locale === "zh" ? { ...styles.localeButton, ...styles.localeButtonActive } : styles.localeButton}
-              >
-                中
-              </button>
-              <button
-                type="button"
-                onClick={() => setLocale("en")}
-                style={locale === "en" ? { ...styles.localeButton, ...styles.localeButtonActive } : styles.localeButton}
-              >
-                EN
-              </button>
-            </div>
+        <div style={styles.topBar}>
+          <div style={styles.tabSwitch}>
+            <button
+              type="button"
+              onClick={() => setTab("report")}
+              style={tab === "report" ? { ...styles.tabButton, ...styles.tabButtonActive } : styles.tabButton}
+            >
+              {text.reportTab}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("calculator")}
+              style={tab === "calculator" ? { ...styles.tabButton, ...styles.tabButtonActive } : styles.tabButton}
+            >
+              {text.calculatorTab}
+            </button>
           </div>
-          <div style={styles.searchBox}>
-            <input
-              id="symbol-search"
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setOpen(true);
-              }}
-              onFocus={() => setOpen(true)}
-              placeholder={
-                locale === "zh"
-                  ? text.searchPlaceholder
-                  : text.searchPlaceholder
-              }
-              style={styles.searchInput}
-              autoComplete="off"
-            />
-            <div style={styles.searchStatus}>
-              {isLoadingReport
-                ? text.loading
-                : isSearching
-                  ? text.searching
-                  : report
-                    ? displaySymbol(report.symbol)
-                    : "--"}
-            </div>
+          <div style={styles.localeSwitch}>
+            <button
+              type="button"
+              onClick={() => setLocale("zh")}
+              style={locale === "zh" ? { ...styles.localeButton, ...styles.localeButtonActive } : styles.localeButton}
+            >
+              中
+            </button>
+            <button
+              type="button"
+              onClick={() => setLocale("en")}
+              style={locale === "en" ? { ...styles.localeButton, ...styles.localeButtonActive } : styles.localeButton}
+            >
+              EN
+            </button>
           </div>
-
-          {open && results.length > 0 ? (
-            <div style={styles.dropdown}>
-              {results.map((security) => (
-                <button
-                  key={security.symbol}
-                  type="button"
-                  onClick={() => chooseSecurity(security)}
-                  style={styles.option}
-                >
-                  <strong>{displaySymbol(security.symbol)}</strong>
-                  <span style={styles.optionName}>{security.name}</span>
-                </button>
-              ))}
-            </div>
-          ) : null}
-
-          {searchError ? (
-            <p style={styles.errorText}>
-              {locale === "zh" ? searchError : text.searchLoadError}
-            </p>
-          ) : null}
-          {reportError ? (
-            <p style={styles.errorText}>
-              {locale === "zh" ? reportError : text.reportLoadError}
-            </p>
-          ) : null}
         </div>
 
-        {report ? <ReportPage report={report} compact locale={locale} /> : null}
+        {tab === "report" ? (
+          <>
+            <div ref={boxRef} style={styles.searchWrap}>
+              <div style={styles.searchTopRow}>
+                <label htmlFor="symbol-search" style={styles.searchLabel}>
+                  {text.searchLabel}
+                </label>
+              </div>
+              <div style={styles.searchBox}>
+                <input
+                  id="symbol-search"
+                  value={query}
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    setOpen(true);
+                  }}
+                  onFocus={() => setOpen(true)}
+                  placeholder={text.searchPlaceholder}
+                  style={styles.searchInput}
+                  autoComplete="off"
+                />
+                <div style={styles.searchStatus}>
+                  {isLoadingReport
+                    ? text.loading
+                    : isSearching
+                      ? text.searching
+                      : report
+                        ? displaySymbol(report.symbol)
+                        : "--"}
+                </div>
+              </div>
+
+              {open && results.length > 0 ? (
+                <div style={styles.dropdown}>
+                  {results.map((security) => (
+                    <button
+                      key={security.symbol}
+                      type="button"
+                      onClick={() => chooseSecurity(security)}
+                      style={styles.option}
+                    >
+                      <strong>{displaySymbol(security.symbol)}</strong>
+                      <span style={styles.optionName}>{security.name}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {searchError ? (
+                <p style={styles.errorText}>
+                  {locale === "zh" ? searchError : text.searchLoadError}
+                </p>
+              ) : null}
+              {reportError ? (
+                <p style={styles.errorText}>
+                  {locale === "zh" ? reportError : text.reportLoadError}
+                </p>
+              ) : null}
+            </div>
+
+            {report ? <ReportPage report={report} compact locale={locale} /> : null}
+          </>
+        ) : (
+          <OptionYieldCalculator locale={locale} />
+        )}
       </section>
     </main>
   );
@@ -310,6 +337,35 @@ const styles: Record<string, React.CSSProperties> = {
   paper: {
     maxWidth: 980,
     margin: "0 auto"
+  },
+  topBar: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 10
+  },
+  tabSwitch: {
+    display: "inline-flex",
+    gap: 4,
+    padding: 4,
+    borderRadius: 999,
+    border: "1px solid var(--line)",
+    background: "rgba(255,255,255,0.82)",
+    boxShadow: "var(--shadow)"
+  },
+  tabButton: {
+    border: "none",
+    background: "transparent",
+    color: "var(--muted)",
+    fontSize: 13,
+    padding: "8px 14px",
+    borderRadius: 999,
+    cursor: "pointer",
+    fontFamily: "inherit"
+  },
+  tabButtonActive: {
+    background: "#1d2038",
+    color: "#fff"
   },
   searchWrap: {
     position: "relative",
