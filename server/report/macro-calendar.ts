@@ -3,6 +3,8 @@ type MacroEvent = {
   date: string;
 };
 
+type SeverityKey = "routine" | "event_window" | "blackout";
+
 const FOMC_2026: MacroEvent[] = [
   { name: "FOMC Meeting", date: "2026-01-27" },
   { name: "FOMC Meeting", date: "2026-03-17" },
@@ -61,12 +63,12 @@ export function getNextMacroEvent(referenceDate: Date) {
 
   const days = diffInDays(current, new Date(next.date));
   const score = days <= 4 ? 0 : days <= 7 ? 8 : days <= 14 ? 14 : 20;
-  const severity = days <= 4 ? "黑窗日期" : days <= 7 ? "事件窗口" : "常规观察";
+  const severityKey: SeverityKey = days <= 4 ? "blackout" : days <= 7 ? "event_window" : "routine";
 
   return {
     ...next,
     days,
     score,
-    severity
+    severityKey
   };
 }

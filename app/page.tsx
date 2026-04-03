@@ -1,8 +1,10 @@
 "use client";
 
 import { startTransition, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ReportPage } from "@/components/report-page";
 import type { SecuritySearchResult, SellPutReport } from "@/server/report/types";
+import { Locale, uiCopy } from "@/shared/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +13,19 @@ const PROD_API_BASE_URL = "https://option-tools-4jy4.onrender.com";
 
 function displaySymbol(symbol: string) {
   return symbol.replace(/\.US$/, "");
+}
+
+function normalizeSymbol(symbol?: string | null) {
+  if (!symbol) {
+    return DEFAULT_SYMBOL;
+  }
+
+  const trimmed = symbol.trim().toUpperCase();
+  if (!trimmed) {
+    return DEFAULT_SYMBOL;
+  }
+
+  return trimmed.endsWith(".US") ? trimmed : `${trimmed}.US`;
 }
 
 function getApiBaseUrl() {
@@ -26,9 +41,12 @@ function getApiBaseUrl() {
 }
 
 export default function Page() {
+  const searchParams = useSearchParams();
+  const initialSymbol = normalizeSymbol(searchParams.get("symbol"));
+  const [locale, setLocale] = useState<Locale>("zh");
   const [report, setReport] = useState<SellPutReport | null>(null);
-  const [selectedSymbol, setSelectedSymbol] = useState(DEFAULT_SYMBOL);
-  const [query, setQuery] = useState(displaySymbol(DEFAULT_SYMBOL));
+  const [selectedSymbol, setSelectedSymbol] = useState(initialSymbol);
+  const [query, setQuery] = useState(displaySymbol(initialSymbol));
   const [securities, setSecurities] = useState<SecuritySearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(true);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
@@ -73,6 +91,21 @@ export default function Page() {
   }).slice(0, 20);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("symbol") === selectedSymbol) {
+      return;
+    }
+
+    params.set("symbol", selectedSymbol);
+    const nextUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, "", nextUrl);
+  }, [selectedSymbol]);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function loadReport(symbol: string) {
@@ -80,7 +113,7 @@ export default function Page() {
       setReportError("");
 
       try {
-        const response = await fetch(`${getApiBaseUrl()}/api/report?symbol=${encodeURIComponent(symbol)}`, {
+        const response = await fetch(`${getApiBaseUrl()}/api/report?symbol=${encodeURIComponent(symbol)}&locale=${locale}`, {
           cache: "no-store"
         });
 
@@ -112,7 +145,7 @@ export default function Page() {
     return () => {
       cancelled = true;
     };
-  }, [selectedSymbol]);
+  }, [selectedSymbol, locale]);
 
   useEffect(() => {
     let cancelled = false;
@@ -173,13 +206,33 @@ export default function Page() {
     setOpen(false);
   }
 
+  const text = uiCopy[locale];
+
   return (
     <main style={styles.shell}>
       <section style={styles.paper}>
         <div ref={boxRef} style={styles.searchWrap}>
-          <label htmlFor="symbol-search" style={styles.searchLabel}>
-            美股标的
-          </label>
+          <div style={styles.searchTopRow}>
+            <label htmlFor="symbol-search" style={styles.searchLabel}>
+              {text.searchLabel}
+            </label>
+            <div style={styles.localeSwitch}>
+              <button
+                type="button"
+                onClick={() => setLocale("zh")}
+                style={locale === "zh" ? { ...styles.localeButton, ...styles.localeButtonActive } : styles.localeButton}
+              >
+                中
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocale("en")}
+                style={locale === "en" ? { ...styles.localeButton, ...styles.localeButtonActive } : styles.localeButton}
+              >
+                EN
+              </button>
+            </div>
+          </div>
           <div style={styles.searchBox}>
             <input
               id="symbol-search"
@@ -189,12 +242,22 @@ export default function Page() {
                 setOpen(true);
               }}
               onFocus={() => setOpen(true)}
-              placeholder="输入代码或公司名，例如 AAPL / Tesla"
+              placeholder={
+                locale === "zh"
+                  ? text.searchPlaceholder
+                  : text.searchPlaceholder
+              }
               style={styles.searchInput}
               autoComplete="off"
             />
             <div style={styles.searchStatus}>
-              {isLoadingReport ? "加载中..." : isSearching ? "搜索中..." : report ? displaySymbol(report.symbol) : "--"}
+              {isLoadingReport
+                ? text.loading
+                : isSearching
+                  ? text.searching
+                  : report
+                    ? displaySymbol(report.symbol)
+                    : "--"}
             </div>
           </div>
 
@@ -214,11 +277,19 @@ export default function Page() {
             </div>
           ) : null}
 
-          {searchError ? <p style={styles.errorText}>{searchError}</p> : null}
-          {reportError ? <p style={styles.errorText}>{reportError}</p> : null}
+          {searchError ? (
+            <p style={styles.errorText}>
+              {locale === "zh" ? searchError : text.searchLoadError}
+            </p>
+          ) : null}
+          {reportError ? (
+            <p style={styles.errorText}>
+              {locale === "zh" ? reportError : text.reportLoadError}
+            </p>
+          ) : null}
         </div>
 
-        {report ? <ReportPage report={report} compact /> : null}
+        {report ? <ReportPage report={report} compact locale={locale} /> : null}
       </section>
     </main>
   );
@@ -236,11 +307,38 @@ const styles: Record<string, React.CSSProperties> = {
     position: "relative",
     marginBottom: 10
   },
+  searchTopRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 6
+  },
   searchLabel: {
-    display: "block",
-    marginBottom: 6,
     color: "var(--muted)",
     fontSize: 12
+  },
+  localeSwitch: {
+    display: "inline-flex",
+    gap: 4,
+    padding: 4,
+    borderRadius: 999,
+    border: "1px solid var(--line)",
+    background: "rgba(255,255,255,0.78)"
+  },
+  localeButton: {
+    border: "none",
+    background: "transparent",
+    color: "var(--muted)",
+    fontSize: 12,
+    padding: "5px 10px",
+    borderRadius: 999,
+    cursor: "pointer",
+    fontFamily: "inherit"
+  },
+  localeButtonActive: {
+    background: "#1d2038",
+    color: "#fff"
   },
   searchBox: {
     display: "grid",

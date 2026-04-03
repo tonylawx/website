@@ -1,8 +1,15 @@
 import type { SellPutReport } from "@/server/report/types";
+import {
+  getVciHint,
+  Locale,
+  translateVciConclusion,
+  uiCopy
+} from "@/shared/i18n";
 
 type Props = {
   report: SellPutReport;
   compact?: boolean;
+  locale?: Locale;
 };
 
 function fmt(value: number, digits = 2) {
@@ -17,14 +24,16 @@ function percentColor(value: number): string {
   return value >= 0 ? "#1f9d63" : "#c85d68";
 }
 
-export function ReportPage({ report, compact = false }: Props) {
+export function ReportPage({ report, compact = false, locale = "zh" }: Props) {
+  const text = uiCopy[locale];
+
   return (
     <main style={compact ? styles.compactShell : styles.shell}>
       <section style={compact ? styles.compactPaper : styles.paper}>
         <section style={compact ? styles.compactHero : styles.hero}>
           <div style={styles.heroTop}>
             <p style={styles.heroKicker}>{report.header.kicker}</p>
-            <h2 style={styles.heroTitle}>{displaySymbol(report.symbol)} 卖出看跌期权 每日报告</h2>
+            <h2 style={styles.heroTitle}>{displaySymbol(report.symbol)} {text.pageTitle}</h2>
             <p style={styles.heroDate}>{report.header.dateLine}</p>
             <div style={styles.stars}>
               <span style={styles.starText}>{report.header.starLine}</span>
@@ -36,52 +45,53 @@ export function ReportPage({ report, compact = false }: Props) {
 
           <div style={styles.metricsGrid}>
             <article style={styles.metricCard}>
-              <h3 style={styles.cardTitle}>波动率综合指数 [VCI]</h3>
+              <h3 style={styles.cardTitle}>{text.vciTitle}</h3>
               {report.vciItems.map((item) => (
-                <div key={item.label} style={styles.metricRow}>
-                  <div>
-                    <p style={styles.metricLabel}>{item.label}</p>
-                    <strong style={styles.metricValue}>{item.value}</strong>
+                <div key={item.label} style={styles.metricBlock}>
+                  <div style={styles.metricRow}>
+                    <div>
+                      <p style={styles.metricLabel}>{item.label}</p>
+                      <strong style={styles.metricValue}>{item.value}</strong>
+                    </div>
+                    <div style={styles.barWrap}>
+                      <div
+                        style={{
+                          ...styles.barFill,
+                          width: `${item.progress}%`
+                        }}
+                      />
+                    </div>
+                    <span style={styles.weight}>{Math.round(item.progress)}</span>
                   </div>
-                  <div style={styles.barWrap}>
-                    <div
-                      style={{
-                        ...styles.barFill,
-                        width: `${item.progress}%`
-                      }}
-                    />
-                  </div>
-                  <span style={styles.weight}>{Math.round(item.progress)}</span>
+                    <p style={styles.metricHintBottom}>{getVciHint(item.label, locale)}</p>
                 </div>
               ))}
               <div style={styles.vciFooter}>
                 <strong style={styles.vciValue}>VCI {fmt(report.score.vci, 3)}</strong>
-                <span style={styles.vciCall}>{report.vciConclusion}</span>
+                <span style={styles.vciCall}>{translateVciConclusion(report.vciConclusion, locale)}</span>
               </div>
             </article>
 
             <article style={styles.metricCard}>
-              <h3 style={styles.cardTitle}>市场趋势</h3>
+              <h3 style={styles.cardTitle}>{text.marketTitle}</h3>
               <dl style={styles.detailList}>
                 <div style={styles.detailItem}>
                   <dt>{displaySymbol(report.market.symbolLabel)}</dt>
                   <dd>${fmt(report.market.symbolLast)}</dd>
                 </div>
                 <div style={styles.detailItem}>
-                  <dt>MA 120</dt>
+                  <dt>{text.ma120}</dt>
                   <dd>${fmt(report.market.ma120)}</dd>
                 </div>
                 <div style={styles.detailItem}>
-                  <dt>Status</dt>
+                  <dt>{text.status}</dt>
                   <dd>{report.market.trendLabel}</dd>
                 </div>
                 <div style={styles.detailItem}>
-                  <dt>Distance</dt>
-                  <dd>{fmt(report.market.distanceToMa120, 2)}%</dd>
-                </div>
-                <div style={styles.detailItem}>
-                  <dt>Score</dt>
-                  <dd>{fmt(report.score.trend, 1)}</dd>
+                  <dt>{text.distance}</dt>
+                  <dd style={{ color: percentColor(report.market.distanceToMa120) }}>
+                    {fmt(report.market.distanceToMa120, 2)}%
+                  </dd>
                 </div>
               </dl>
             </article>
@@ -90,12 +100,12 @@ export function ReportPage({ report, compact = false }: Props) {
           <div style={styles.supportCard}>
             <div style={styles.supportHead}>
               <div>
-                <p style={styles.supportKicker}>{displaySymbol(report.symbol)} 支撑位分析</p>
+                <p style={styles.supportKicker}>{displaySymbol(report.symbol)} {text.supportTitle}</p>
                 <h3 style={styles.supportTitle}>{displaySymbol(report.symbol)} ${fmt(report.support.underlyingLast)}</h3>
               </div>
               <div style={styles.supportSide}>
                 <strong style={styles.supportPrice}>
-                  关键支撑位 ${fmt(report.support.keySupport)}
+                  {text.keySupport} ${fmt(report.support.keySupport)}
                   <span style={{ ...styles.percentInline, color: percentColor(report.support.keySupportDistance) }}>
                     ({fmt(report.support.keySupportDistance, 1)}%)
                   </span>
@@ -104,15 +114,15 @@ export function ReportPage({ report, compact = false }: Props) {
               </div>
             </div>
             <div style={styles.supportMeta}>
-              <span>支撑位来源：近周期低点 + 斐波那契回撤</span>
-              <span>越接近关键支撑，卖方缓冲越薄</span>
+              <span>{text.supportMetaLeft}</span>
+              <span>{text.supportMetaRight}</span>
             </div>
             <div style={styles.supportGrid}>
               <div>
                 <div style={styles.supportHeaderRow}>
-                  <span>近期低点</span>
-                  <span>价格</span>
-                  <span>距离</span>
+                  <span>{text.recentLows}</span>
+                  <span>{text.price}</span>
+                  <span>{text.distance}</span>
                 </div>
                 <div style={styles.supportTable}>
                   {report.support.windows.map((window) => (
@@ -128,9 +138,9 @@ export function ReportPage({ report, compact = false }: Props) {
               </div>
               <div>
                 <div style={styles.supportHeaderRow}>
-                  <span>斐波那契</span>
-                  <span>价格</span>
-                  <span>距离</span>
+                  <span>{text.fib}</span>
+                  <span>{text.price}</span>
+                  <span>{text.distance}</span>
                 </div>
                 <div style={styles.supportTable}>
                   {report.support.fibLevels.map((level) => (
@@ -148,7 +158,7 @@ export function ReportPage({ report, compact = false }: Props) {
           </div>
 
           <div style={styles.eventsCard}>
-            <h3 style={styles.cardTitle}>宏观事件</h3>
+            <h3 style={styles.cardTitle}>{text.eventTitle}</h3>
             <div style={styles.eventRow}>
               <span>{report.event.name}</span>
               <span>{report.event.dateLabel}</span>
@@ -293,13 +303,21 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gridTemplateColumns: "minmax(72px, 112px) 1fr 40px",
     gap: 12,
-    alignItems: "center",
+    alignItems: "center"
+  },
+  metricBlock: {
     marginTop: 10
   },
   metricLabel: {
     margin: 0,
     color: "var(--muted)",
     fontSize: 11
+  },
+  metricHintBottom: {
+    margin: "6px 0 0",
+    color: "var(--muted)",
+    fontSize: 10,
+    lineHeight: 1.25
   },
   metricValue: {
     fontSize: 15

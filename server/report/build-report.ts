@@ -5,6 +5,18 @@ import {
   getQuotes
 } from "@/server/report/longport";
 import type { SellPutReport } from "@/server/report/types";
+import {
+  formatCountdown,
+  formatMarketDate,
+  Locale,
+  reportKicker,
+  supportCommentary,
+  translateEventName,
+  translateSeverity,
+  translateTrendLabel,
+  vciConclusionLabel,
+  actionLabelFromStars
+} from "@/shared/i18n";
 
 type CandleLike = {
   close?: unknown;
@@ -72,27 +84,6 @@ function clamp(value: number, min = 0, max = 100) {
   return Math.min(max, Math.max(min, value));
 }
 
-function formatMarketDate(date: Date) {
-  const year = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/New_York",
-    year: "numeric"
-  }).format(date);
-  const month = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/New_York",
-    month: "2-digit"
-  }).format(date);
-  const day = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/New_York",
-    day: "2-digit"
-  }).format(date);
-  const weekday = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
-    weekday: "long"
-  }).format(date);
-
-  return `${year}-${month}-${day} ${weekday}`;
-}
-
 function buildStarLine(stars: number) {
   return `${"★".repeat(stars)}${"☆".repeat(5 - stars)}`;
 }
@@ -103,13 +94,6 @@ function starScoreFromTotal(total: number) {
   if (total >= 50) return 3;
   if (total >= 35) return 2;
   return 1;
-}
-
-function actionLabelFromStars(stars: number) {
-  if (stars >= 4) return "开仓";
-  if (stars === 3) return "谨慎";
-  if (stars === 2) return "回避";
-  return "回避";
 }
 
 function buildVci(
@@ -169,7 +153,7 @@ function scoreFromDistance(distance: number) {
   return 0;
 }
 
-export async function buildSellPutReport(symbol: string): Promise<SellPutReport> {
+export async function buildSellPutReport(symbol: string, locale: Locale = "zh"): Promise<SellPutReport> {
   const [quotes, symbolCandles, vixQuotes, vixCandles, vvixLatest, vix3mLatest] = await Promise.all([
     getQuotes([symbol]),
     getDailyCandles(symbol, 140),
@@ -244,16 +228,21 @@ export async function buildSellPutReport(symbol: string): Promise<SellPutReport>
   const macro = getNextMacroEvent(marketTimestamp);
   const total = vciBlock.vci * 40 + trendScore + supportScore + macro.score;
   const starScore = starScoreFromTotal(total);
+  const severityMap = {
+    routine: "常规观察",
+    event_window: "事件窗口",
+    blackout: "黑窗期"
+  } as const;
 
   return {
     symbol,
     header: {
-      kicker: "本策略仅作为期权量化思路，不作为投资建议。",
-      dateLine: formatMarketDate(marketTimestamp),
+      kicker: reportKicker(locale),
+      dateLine: formatMarketDate(marketTimestamp, locale),
       starLine: buildStarLine(starScore)
     },
     summary: {
-      actionLabel: actionLabelFromStars(starScore)
+      actionLabel: actionLabelFromStars(starScore, locale)
     },
     score: {
       starScore,
@@ -267,24 +256,21 @@ export async function buildSellPutReport(symbol: string): Promise<SellPutReport>
       symbolLast: underlyingLast,
       ma120,
       distanceToMa120,
-      trendLabel
+      trendLabel: translateTrendLabel(trendLabel, locale)
     },
     support: {
       underlyingLast,
       keySupport,
       keySupportDistance: supportDistance,
-      commentary:
-        supportDistance >= 7
-          ? "价格离关键低点仍有缓冲，适合继续筛选更深虚值行权价。"
-          : "价格距离关键低点不远，卖方安全垫偏薄。",
+      commentary: supportCommentary(supportDistance, locale),
       windows: supportBuckets,
       fibLevels
     },
     event: {
-      name: macro.name,
+      name: translateEventName(macro.name, locale),
       dateLabel: macro.date.slice(5).replace("-", "/"),
-      countdownLabel: `${macro.days} days`,
-      severity: macro.severity
+      countdownLabel: formatCountdown(macro.days, locale),
+      severity: translateSeverity(severityMap[macro.severityKey], locale)
     }
   };
 }
