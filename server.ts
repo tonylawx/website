@@ -1,11 +1,11 @@
-import nextEnv from "@next/env";
+import { config as loadEnv } from "dotenv";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { reportRoute } from "@/server/routes/report";
 import { searchRoute } from "@/server/routes/search";
 
-nextEnv.loadEnvConfig(process.cwd());
+loadEnv();
 
 const port = Number(
   process.env.API_PORT ??
