@@ -40,8 +40,11 @@ async function bootstrap() {
   hono.use(
     "*",
     cors({
-      origin: (origin) => resolveCorsOrigin(origin) ?? "*",
-      allowMethods: ["GET", "POST", "OPTIONS"],
+      origin: (origin, c) => {
+        const requestOrigin = origin || c.req.header("Origin") || c.req.header("origin");
+        return resolveCorsOrigin(requestOrigin) ?? (requestOrigin ? undefined : "*");
+      },
+      allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
       allowHeaders: ["Content-Type", "Authorization", "x-auth-internal-key"],
       credentials: true
     })

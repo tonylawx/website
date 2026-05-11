@@ -172,14 +172,7 @@ async function fetchText(url: string, label: string) {
   }
 
   if ("Bun" in globalThis && url.includes("bls.gov")) {
-    const helper = [
-      "const url = process.argv[1];",
-      "const response = await fetch(url, { headers: { 'user-agent': 'option-tools/1.0' }, cache: 'no-store' });",
-      "if (!response.ok) throw new Error(String(response.status));",
-      "process.stdout.write(await response.text());"
-    ].join(" ");
-
-    const { stdout } = await execFileAsync("node", ["--input-type=module", "-e", helper, url], {
+    const { stdout } = await execFileAsync("curl", ["-fsSL", "-A", "option-tools/1.0", url], {
       maxBuffer: 10 * 1024 * 1024
     });
 
@@ -196,13 +189,22 @@ export async function getMacroEvents() {
   }
 
   try {
-    const [fedHtml, blsIcs] = await Promise.all([
+    const [fedResult, blsResult] = await Promise.allSettled([
       fetchText(FED_FOMC_URL, "FOMC calendar"),
       fetchText(BLS_ICS_URL, "BLS calendar")
     ]);
-    const events = dedupeEvents([...parseFomcEvents(fedHtml), ...parseBlsEvents(blsIcs)]).sort((a, b) =>
-      a.date.localeCompare(b.date)
-    );
+    const events = dedupeEvents([
+      ...(fedResult.status === "fulfilled" ? parseFomcEvents(fedResult.value) : []),
+      ...(blsResult.status === "fulfilled" ? parseBlsEvents(blsResult.value) : [])
+    ]).sort((a, b) => a.date.localeCompare(b.date));
+
+    if (fedResult.status === "rejected") {
+      console.warn("Failed to load FOMC calendar", fedResult.reason);
+    }
+
+    if (blsResult.status === "rejected") {
+      console.warn("Failed to load BLS calendar", blsResult.reason);
+    }
 
     if (events.length === 0) {
       throw new Error("No official macro events parsed");
