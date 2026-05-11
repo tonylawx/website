@@ -1,7 +1,10 @@
 import { cn } from "@/lib/utils";
+import { ChevronDown } from "lucide-react";
+import type { ReactNode } from "react";
 import type { SellPutReport } from "@/server/report/types";
 import { LOCALE } from "@/shared/constants";
 import { getVciHint, type Locale, uiCopy, vciConclusionLabel } from "@/shared/i18n";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type Props = {
   report: SellPutReport;
@@ -45,12 +48,127 @@ function vciConclusionColorClass(vci: number) {
   return "text-[#c89a2d]";
 }
 
+type FactorTone = "green" | "yellow" | "red";
+
+const factorToneClass: Record<FactorTone, { text: string; badge: string; border: string; dot: string }> = {
+  green: {
+    text: "text-[#1f9d63]",
+    badge: "bg-[#e6f6ee] text-[#1f7e52]",
+    border: "border-[#1f9d63]/22",
+    dot: "bg-[#1f9d63]"
+  },
+  yellow: {
+    text: "text-[#c89a2d]",
+    badge: "bg-[#fff3d6] text-[#9c741f]",
+    border: "border-[#c89a2d]/24",
+    dot: "bg-[#c89a2d]"
+  },
+  red: {
+    text: "text-app-rose",
+    badge: "bg-app-soft-rose text-app-rose",
+    border: "border-app-rose/20",
+    dot: "bg-app-rose"
+  }
+};
+
+function vciTone(vci: number): FactorTone {
+  if (vci > 0.6) {
+    return "green";
+  }
+
+  if (vci < 0.4) {
+    return "red";
+  }
+
+  return "yellow";
+}
+
+function marketTone(distanceToMa120: number): FactorTone {
+  if (distanceToMa120 >= 0) {
+    return "green";
+  }
+
+  if (distanceToMa120 >= -3) {
+    return "yellow";
+  }
+
+  return "red";
+}
+
+function supportTone(distance: number): FactorTone {
+  if (distance >= 10) {
+    return "green";
+  }
+
+  if (distance >= 5) {
+    return "yellow";
+  }
+
+  return "red";
+}
+
+function eventTone(items: SellPutReport["event"]["items"] = []): FactorTone {
+  if (items.some((item) => item.impactsScore)) {
+    return "red";
+  }
+
+  if (items.length > 0) {
+    return "yellow";
+  }
+
+  return "green";
+}
+
+function CollapsibleCard({
+  title,
+  summary,
+  tone,
+  children
+}: {
+  title: string;
+  summary: string;
+  tone: FactorTone;
+  children: ReactNode;
+}) {
+  const toneClass = factorToneClass[tone];
+
+  return (
+    <Collapsible className={cn("group rounded-[18px] border bg-white", toneClass.border)}>
+      <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
+        <div className="min-w-0">
+          <h3 className="text-base font-semibold">{title}</h3>
+          <div className={cn("mt-1 inline-flex max-w-full items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold", toneClass.badge)}>
+            <span className={cn("size-1.5 shrink-0 rounded-full", toneClass.dot)} />
+            <span className="truncate">{summary}</span>
+          </div>
+        </div>
+        <ChevronDown className="size-4 shrink-0 text-app-muted transition-transform group-data-[state=open]:rotate-180" />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="px-4 pb-4">
+        <div className="border-t border-app-line pt-3">{children}</div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 export function ReportPage({ report, compact = false, locale = LOCALE.ZH }: Props) {
   const text = uiCopy[locale];
   const eventItems = report.event.items ?? [];
   const starColor = starScoreColorClass(report.score.starScore);
   const vciConclusionColor = vciConclusionColorClass(report.score.vci);
   const vciConclusionText = vciConclusionLabel(report.score.vci, locale);
+  const vciSummaryTone = vciTone(report.score.vci);
+  const marketSummaryTone = marketTone(report.market.distanceToMa120);
+  const supportSummaryTone = supportTone(report.support.keySupportDistance);
+  const eventSummaryTone = eventTone(eventItems);
+  const impactingEvent = eventItems.find((item) => item.impactsScore);
+  const closestEvent = eventItems[0];
+  const eventSummary =
+    impactingEvent
+      ? `${text.eventImpact} · ${impactingEvent.name}`
+      : closestEvent
+        ? `${closestEvent.name} · ${closestEvent.countdownLabel}`
+      : text.eventNone;
 
   return (
     <main className={cn(compact ? "p-0" : "px-4 py-8 sm:py-10")}>
@@ -76,8 +194,11 @@ export function ReportPage({ report, compact = false, locale = LOCALE.ZH }: Prop
           </div>
 
           <div className="grid gap-3 p-3 lg:grid-cols-2">
-            <article className="rounded-[18px] border border-app-navy/7 bg-white p-4">
-              <h3 className="text-base font-semibold">{text.vciTitle}</h3>
+            <CollapsibleCard
+              title={text.vciTitle}
+              summary={`VCI ${fmt(report.score.vci, 3)}`}
+              tone={vciSummaryTone}
+            >
               {report.vciItems.map((item) => (
                 <div key={item.label} className="mt-3">
                   <div className="grid grid-cols-[minmax(72px,112px)_1fr_40px] items-center gap-3">
@@ -100,10 +221,13 @@ export function ReportPage({ report, compact = false, locale = LOCALE.ZH }: Prop
                 <strong className={cn("text-2xl", vciConclusionColor)}>VCI {fmt(report.score.vci, 3)}</strong>
                 <span className={cn("text-2xl font-semibold", vciConclusionColor)}>{vciConclusionText}</span>
               </div>
-            </article>
+            </CollapsibleCard>
 
-            <article className="rounded-[18px] border border-app-navy/7 bg-white p-4">
-              <h3 className="text-base font-semibold">{text.marketTitle}</h3>
+            <CollapsibleCard
+              title={text.marketTitle}
+              summary={`${text.distance} ${fmt(report.market.distanceToMa120, 2)}%`}
+              tone={marketSummaryTone}
+            >
               <dl className="mt-3 grid gap-2 text-sm">
                 <div className="flex items-center justify-between gap-4">
                   <dt>{displaySymbol(report.market.symbolLabel)}</dt>
@@ -124,10 +248,15 @@ export function ReportPage({ report, compact = false, locale = LOCALE.ZH }: Prop
                   </dd>
                 </div>
               </dl>
-            </article>
+            </CollapsibleCard>
           </div>
 
-          <div className="mx-3 mb-3 rounded-[18px] border border-app-navy/7 bg-white p-4">
+          <div className="mx-3 mb-3">
+            <CollapsibleCard
+              title={text.supportTitle}
+              summary={`${text.keySupport} ${fmt(report.support.keySupportDistance, 1)}%`}
+              tone={supportSummaryTone}
+            >
             <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] sm:items-start">
               <div>
                 <p className="text-[11px] text-[#7b8db1]">{displaySymbol(report.symbol)} {text.supportTitle}</p>
@@ -185,11 +314,12 @@ export function ReportPage({ report, compact = false, locale = LOCALE.ZH }: Prop
                 </div>
               </div>
             </div>
+            </CollapsibleCard>
           </div>
 
-          <div className="mx-3 mb-3 rounded-[18px] border border-app-navy/7 bg-white p-4">
-            <h3 className="text-base font-semibold">{text.eventTitle}</h3>
-            <p className="mt-1.5 text-xs leading-6 text-app-muted">{text.eventHint}</p>
+          <div className="mx-3 mb-3">
+            <CollapsibleCard title={text.eventTitle} summary={eventSummary} tone={eventSummaryTone}>
+            <p className="text-xs leading-6 text-app-muted">{text.eventHint}</p>
             {eventItems.length > 0 ? (
               <div className="mt-3 grid gap-1">
                 {eventItems.map((item) => (
@@ -224,6 +354,7 @@ export function ReportPage({ report, compact = false, locale = LOCALE.ZH }: Prop
             ) : (
               <div className="mt-3 border-t border-app-navy/6 pt-3 text-sm text-app-muted">{text.eventNone}</div>
             )}
+            </CollapsibleCard>
           </div>
         </section>
       </section>
