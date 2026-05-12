@@ -214,53 +214,92 @@ export const authCopy = {
   }
 } as const;
 
+const ACTION_LABEL = {
+  OPEN: "open",
+  CAUTIOUS: "cautious",
+  AVOID: "avoid"
+} as const;
+
+type ActionLabel = typeof ACTION_LABEL[keyof typeof ACTION_LABEL];
+
+const TREND_LABEL = {
+  ABOVE_MA: "above_ma",
+  BELOW_MA: "below_ma"
+} as const;
+
+type TrendLabel = typeof TREND_LABEL[keyof typeof TREND_LABEL];
+
+const SEVERITY = {
+  ROUTINE: "routine",
+  EVENT_WINDOW: "event_window",
+  BLACKOUT: "blackout"
+} as const;
+
+type SeverityKey = typeof SEVERITY[keyof typeof SEVERITY];
+
+const VCI_CONCLUSION = {
+  GOOD_TO_SELL: "good_to_sell",
+  WATCH: "watch",
+  AVOID: "avoid"
+} as const;
+
+type VciConclusion = typeof VCI_CONCLUSION[keyof typeof VCI_CONCLUSION];
+
+const MACRO_EVENT_KIND = {
+  FOMC: "fomc",
+  CPI: "cpi",
+  PPI: "ppi"
+} as const;
+
+type MacroEventKind = typeof MACRO_EVENT_KIND[keyof typeof MACRO_EVENT_KIND];
+
 const actionLabelCopy = {
   zh: {
-    开仓: "开仓",
-    谨慎: "谨慎",
-    回避: "回避"
+    [ACTION_LABEL.OPEN]: "开仓",
+    [ACTION_LABEL.CAUTIOUS]: "谨慎",
+    [ACTION_LABEL.AVOID]: "回避"
   },
   en: {
-    开仓: "Open",
-    谨慎: "Cautious",
-    回避: "Avoid"
+    [ACTION_LABEL.OPEN]: "Open",
+    [ACTION_LABEL.CAUTIOUS]: "Cautious",
+    [ACTION_LABEL.AVOID]: "Avoid"
   }
 } as const;
 
 const trendLabelCopy = {
   zh: {
-    均线上方: "均线上方",
-    均线下方: "均线下方"
+    [TREND_LABEL.ABOVE_MA]: "均线上方",
+    [TREND_LABEL.BELOW_MA]: "均线下方"
   },
   en: {
-    均线上方: "Above MA",
-    均线下方: "Below MA"
+    [TREND_LABEL.ABOVE_MA]: "Above MA",
+    [TREND_LABEL.BELOW_MA]: "Below MA"
   }
 } as const;
 
 const severityCopy = {
   zh: {
-    常规观察: "常规观察",
-    事件窗口: "事件窗口",
-    黑窗期: "黑窗期"
+    [SEVERITY.ROUTINE]: "常规观察",
+    [SEVERITY.EVENT_WINDOW]: "事件窗口",
+    [SEVERITY.BLACKOUT]: "黑窗期"
   },
   en: {
-    常规观察: "Routine Watch",
-    事件窗口: "Event Window",
-    黑窗期: "Blackout"
+    [SEVERITY.ROUTINE]: "Routine Watch",
+    [SEVERITY.EVENT_WINDOW]: "Event Window",
+    [SEVERITY.BLACKOUT]: "Blackout"
   }
 } as const;
 
 const vciConclusionCopy = {
   zh: {
-    适合开仓: "适合开仓",
-    观望: "观望",
-    回避: "回避"
+    [VCI_CONCLUSION.GOOD_TO_SELL]: "适合开仓",
+    [VCI_CONCLUSION.WATCH]: "观望",
+    [VCI_CONCLUSION.AVOID]: "回避"
   },
   en: {
-    适合开仓: "Good to Sell",
-    观望: "Watch",
-    回避: "Avoid"
+    [VCI_CONCLUSION.GOOD_TO_SELL]: "Good to Sell",
+    [VCI_CONCLUSION.WATCH]: "Watch",
+    [VCI_CONCLUSION.AVOID]: "Avoid"
   }
 } as const;
 
@@ -302,31 +341,31 @@ const countdownFormatterCopy: Record<
 
 const eventNameCopy = {
   zh: {
-    "FOMC Meeting": "FOMC 会议",
-    "US CPI": "美国 CPI",
-    "US PPI": "美国 PPI"
+    [MACRO_EVENT_KIND.FOMC]: "FOMC 会议",
+    [MACRO_EVENT_KIND.CPI]: "美国 CPI",
+    [MACRO_EVENT_KIND.PPI]: "美国 PPI"
   },
   en: {
-    "FOMC Meeting": "FOMC Meeting",
-    "US CPI": "US CPI",
-    "US PPI": "US PPI"
+    [MACRO_EVENT_KIND.FOMC]: "FOMC Meeting",
+    [MACRO_EVENT_KIND.CPI]: "US CPI",
+    [MACRO_EVENT_KIND.PPI]: "US PPI"
   }
 } as const;
 
-export function translateActionLabel(label: string, locale: Locale) {
-  return actionLabelCopy[locale][label as keyof typeof actionLabelCopy.zh] ?? label;
+export function translateActionLabel(label: ActionLabel, locale: Locale) {
+  return actionLabelCopy[locale][label];
 }
 
-export function translateTrendLabel(label: string, locale: Locale) {
-  return trendLabelCopy[locale][label as keyof typeof trendLabelCopy.zh] ?? label;
+export function translateTrendLabel(label: TrendLabel, locale: Locale) {
+  return trendLabelCopy[locale][label];
 }
 
-export function translateSeverity(label: string, locale: Locale) {
-  return severityCopy[locale][label as keyof typeof severityCopy.zh] ?? label;
+export function translateSeverity(label: SeverityKey, locale: Locale) {
+  return severityCopy[locale][label];
 }
 
-export function translateVciConclusion(label: string, locale: Locale) {
-  return vciConclusionCopy[locale][label as keyof typeof vciConclusionCopy.zh] ?? label;
+export function translateVciConclusion(label: VciConclusion, locale: Locale) {
+  return vciConclusionCopy[locale][label];
 }
 
 export function getVciHint(label: string, locale: Locale) {
@@ -353,12 +392,13 @@ export function reportKicker(locale: Locale) {
 }
 
 export function actionLabelFromStars(stars: number, locale: Locale) {
-  const label = stars >= 4 ? "开仓" : stars === 3 ? "谨慎" : "回避";
+  const label = stars >= 4 ? ACTION_LABEL.OPEN : stars === 3 ? ACTION_LABEL.CAUTIOUS : ACTION_LABEL.AVOID;
   return translateActionLabel(label, locale);
 }
 
 export function vciConclusionLabel(vci: number, locale: Locale) {
-  const label = vci > 0.6 ? "适合开仓" : vci < 0.4 ? "回避" : "观望";
+  const label =
+    vci > 0.6 ? VCI_CONCLUSION.GOOD_TO_SELL : vci < 0.4 ? VCI_CONCLUSION.AVOID : VCI_CONCLUSION.WATCH;
   return translateVciConclusion(label, locale);
 }
 
@@ -396,6 +436,6 @@ export function formatCountdown(days: number, locale: Locale) {
   return formatter.future(days);
 }
 
-export function translateEventName(name: string, locale: Locale) {
-  return eventNameCopy[locale][name as keyof typeof eventNameCopy.zh] ?? name;
+export function translateEventName(name: MacroEventKind, locale: Locale) {
+  return eventNameCopy[locale][name];
 }
