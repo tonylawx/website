@@ -3,7 +3,14 @@ import { ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
 import type { SellPutReport } from "@/server/report/types";
 import { LOCALE } from "@/shared/constants";
-import { getVciHint, type Locale, uiCopy, vciConclusionLabel } from "@/shared/i18n";
+import {
+  formatMarketSummary,
+  formatSupportSummary,
+  getVciHint,
+  type Locale,
+  uiCopy,
+  vciConclusionLabel
+} from "@/shared/i18n";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type Props = {
@@ -163,6 +170,13 @@ export function ReportPage({ report, compact = false, locale = LOCALE.ZH }: Prop
   const eventSummaryTone = eventTone(eventItems);
   const impactingEvent = eventItems.find((item) => item.impactsScore);
   const closestEvent = eventItems[0];
+  const keySupportWindow = report.support.windows.reduce<SellPutReport["support"]["windows"][number] | null>((currentMin, window) => {
+    if (!currentMin || window.low < currentMin.low) {
+      return window;
+    }
+
+    return currentMin;
+  }, null);
   const eventSummary =
     impactingEvent
       ? `${text.eventImpact} · ${impactingEvent.name}`
@@ -225,7 +239,7 @@ export function ReportPage({ report, compact = false, locale = LOCALE.ZH }: Prop
 
             <CollapsibleCard
               title={text.marketTitle}
-              summary={`${text.distance} ${fmt(report.market.distanceToMa120, 2)}%`}
+              summary={formatMarketSummary(report.market.distanceToMa120, locale)}
               tone={marketSummaryTone}
             >
               <dl className="mt-3 grid gap-2 text-sm">
@@ -254,7 +268,7 @@ export function ReportPage({ report, compact = false, locale = LOCALE.ZH }: Prop
           <div className="mx-3 mb-3">
             <CollapsibleCard
               title={text.supportTitle}
-              summary={`${text.keySupport} ${fmt(report.support.keySupportDistance, 1)}%`}
+              summary={formatSupportSummary(keySupportWindow?.label ?? null, report.support.keySupportDistance, locale)}
               tone={supportSummaryTone}
             >
             <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] sm:items-start">
