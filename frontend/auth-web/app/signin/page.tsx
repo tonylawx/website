@@ -54,6 +54,24 @@ export default function SignInPage() {
 
   const text = authCopy[locale];
 
+  async function submitSignIn(nextEmail: string, nextPassword: string) {
+    const signInResponse = await fetch(buildAuthApiUrl("/api/public/auth/sign-in"), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      credentials: "include",
+      body: JSON.stringify({ email: nextEmail, password: nextPassword })
+    });
+
+    if (!signInResponse.ok) {
+      return false;
+    }
+
+    window.location.href = callbackUrl;
+    return true;
+  }
+
   async function handleResendVerification() {
     if (!email) {
       setError(text.emailNotVerified);
@@ -103,10 +121,16 @@ export default function SignInPage() {
         return;
       }
 
-      setPending(false);
       setPreviewUrl(payload.previewUrl ?? "");
-      setSuccess(text.registerVerifySuccess);
-      setMode("signin");
+      setSuccess(text.registerSuccess);
+      const signedIn = await submitSignIn(email, password);
+      setPending(false);
+
+      if (!signedIn) {
+        setSuccess("");
+        setMode("signin");
+        setError(text.registerAutologinFailed);
+      }
       return;
     }
 
@@ -132,23 +156,13 @@ export default function SignInPage() {
       return;
     }
 
-    const signInResponse = await fetch(buildAuthApiUrl("/api/public/auth/sign-in"), {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      credentials: "include",
-      body: JSON.stringify({ email, password })
-    });
-
+    const signedIn = await submitSignIn(email, password);
     setPending(false);
 
-    if (!signInResponse.ok) {
+    if (!signedIn) {
       setError(text.invalidCredentials);
       return;
     }
-
-    window.location.href = callbackUrl;
   }
 
   return (
