@@ -285,8 +285,9 @@ export async function registerUserRoute(c: Context) {
 
   try {
     const user = await registerUser({ email, password, name });
+    const emailVerificationRequired = isEmailVerificationRequired();
     let previewUrl: string | undefined;
-    if (isEmailVerificationRequired()) {
+    if (emailVerificationRequired) {
       const verification = await createEmailVerificationToken(user.email);
       const currentLocale = locale === "en" ? "en" : "zh";
 
@@ -303,7 +304,7 @@ export async function registerUserRoute(c: Context) {
       }
     }
 
-    return c.json({ user, previewUrl }, 201);
+    return c.json({ user, previewUrl, emailVerificationRequired }, 201);
   } catch (error) {
     const message = error instanceof Error ? error.message : "REGISTER_FAILED";
 
