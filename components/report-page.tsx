@@ -134,15 +134,15 @@ function CollapsibleCard({
 
   return (
     <Collapsible className={cn("group rounded-[18px] border bg-white", toneClass.border)}>
-      <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
-        <div className="min-w-0">
-          <h3 className="text-base font-semibold">{title}</h3>
-          <div className={cn("mt-1 inline-flex max-w-full items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold", toneClass.badge)}>
+      <CollapsibleTrigger className="flex w-full items-center gap-2.5 px-4 py-3 text-left sm:gap-3 sm:py-4">
+        <h3 className="min-w-0 flex-1 text-[15px] font-semibold leading-5 sm:text-base sm:leading-6">{title}</h3>
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <div className={cn("inline-flex max-w-[42vw] items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold sm:max-w-none sm:gap-2 sm:text-xs", toneClass.badge)}>
             <span className={cn("size-1.5 shrink-0 rounded-full", toneClass.dot)} />
             <span className="truncate">{summary}</span>
           </div>
+          <ChevronDown className="size-4 shrink-0 text-app-muted transition-transform group-data-[state=open]:rotate-180" />
         </div>
-        <ChevronDown className="size-4 shrink-0 text-app-muted transition-transform group-data-[state=open]:rotate-180" />
       </CollapsibleTrigger>
       <CollapsibleContent className="px-4 pb-4">
         <div className="border-t border-app-line pt-3">{children}</div>

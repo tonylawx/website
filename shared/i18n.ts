@@ -338,7 +338,7 @@ export function formatFiscalQuarterEarningsTitle(raw: string | null, locale: Loc
   }
 
   const [, quarter, year] = match;
-  return locale === LOCALE.EN ? `${year} Q${quarter} Earnings` : `${year}年Q${quarter}财报`;
+  return locale === LOCALE.EN ? `${year} Q${quarter} Earnings` : `${year} Q${quarter} 财报`;
 }
 
 export function translateEventName(kind: MacroEventKind, locale: Locale) {
