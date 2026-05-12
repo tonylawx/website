@@ -113,6 +113,7 @@ export default function SignInPage() {
       const payload = (await response.json().catch(() => ({ error: text.registerFailed }))) as {
         error?: string;
         previewUrl?: string;
+        emailVerificationRequired?: boolean;
       };
 
       if (!response.ok) {
@@ -122,6 +123,13 @@ export default function SignInPage() {
       }
 
       setPreviewUrl(payload.previewUrl ?? "");
+      if (payload.emailVerificationRequired) {
+        setPending(false);
+        setMode("signin");
+        setSuccess(text.registerVerifySuccess);
+        return;
+      }
+
       setSuccess(text.registerSuccess);
       const signedIn = await submitSignIn(email, password);
       setPending(false);

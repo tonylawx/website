@@ -301,11 +301,11 @@ const supportSummaryFormatterCopy: Record<
 > = {
   [LOCALE.ZH]: {
     fallbackWindow: "支撑位",
-    summary: (windowLabel, value, keySupportLabel) => `${windowLabel} ${keySupportLabel} ${value}`
+    summary: (windowLabel, value, keySupportLabel) => `距离${windowLabel}${keySupportLabel} ${value}`
   },
   [LOCALE.EN]: {
     fallbackWindow: "Support",
-    summary: (windowLabel, value) => `${windowLabel} Key Support ${value}`
+    summary: (windowLabel, value) => `Distance to ${windowLabel} Key Support ${value}`
   }
 };
 

@@ -2,10 +2,17 @@
 
 import { startTransition, useEffect, useRef, useState } from "react";
 import { getAuthApiUrl } from "@tonylaw/auth/shared";
+import { ChevronDown, LogOut } from "lucide-react";
 import { IOSInstallBanner } from "@/components/ios-install-banner";
 import { OptionYieldCalculator } from "@/components/option-yield-calculator";
 import { ReportPage } from "@/components/report-page";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { cn } from "@/lib/utils";
@@ -544,11 +551,6 @@ export default function Page() {
 
         <div className="mb-2.5 flex flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0 rounded-full border border-app-line bg-white/82 px-4 py-2 text-sm font-semibold text-app-navy shadow-app">
-              <span className="block truncate">
-                {isLoadingUser ? text.accountLoading : accountName}
-              </span>
-            </div>
             <div className="flex items-center gap-2">
               <SegmentedControl
                 className="shrink-0"
@@ -557,13 +559,33 @@ export default function Page() {
                 options={localeOptions}
                 value={locale}
               />
-              <Button
-                asChild
-                className="h-12 rounded-full border border-app-line bg-white/82 px-4 text-sm font-semibold text-app-navy shadow-app hover:bg-white"
-                variant="outline"
-              >
-                <a href={signOutHref}>{text.accountSignOut}</a>
-              </Button>
+            </div>
+
+            <div className="min-w-0">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    className="h-12 max-w-[46vw] rounded-full border border-app-line bg-white/82 px-4 text-sm font-semibold text-app-navy shadow-app hover:bg-white"
+                    variant="outline"
+                  >
+                    <span className="truncate">
+                      {isLoadingUser ? text.accountLoading : accountName}
+                    </span>
+                    <ChevronDown className="ml-2 size-4 shrink-0 text-app-muted" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onSelect={() => {
+                      window.location.href = signOutHref;
+                    }}
+                  >
+                    <LogOut className="size-4" />
+                    {text.accountSignOut}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 

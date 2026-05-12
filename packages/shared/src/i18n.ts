@@ -319,6 +319,23 @@ const supportCommentaryCopy: Record<Locale, { buffered: string; thin: string }> 
   }
 };
 
+const supportSummaryFormatterCopy: Record<
+  Locale,
+  {
+    fallbackWindow: string;
+    summary: (windowLabel: string, value: string, keySupportLabel: string) => string;
+  }
+> = {
+  zh: {
+    fallbackWindow: "支撑位",
+    summary: (windowLabel, value, keySupportLabel) => `距离${windowLabel}${keySupportLabel} ${value}`
+  },
+  en: {
+    fallbackWindow: "Support",
+    summary: (windowLabel, value) => `Distance to ${windowLabel} Key Support ${value}`
+  }
+};
+
 const countdownFormatterCopy: Record<
   Locale,
   {
@@ -406,6 +423,12 @@ export function supportCommentary(supportDistance: number, locale: Locale) {
   return supportDistance >= 7
     ? supportCommentaryCopy[locale].buffered
     : supportCommentaryCopy[locale].thin;
+}
+
+export function formatSupportSummary(windowLabel: string | null, distance: number, locale: Locale, keySupportLabel: string) {
+  const value = `${Math.abs(distance).toFixed(1)}%`;
+  const formatter = supportSummaryFormatterCopy[locale];
+  return formatter.summary(windowLabel ?? formatter.fallbackWindow, value, keySupportLabel);
 }
 
 export function formatMarketDate(date: Date, locale: Locale) {
