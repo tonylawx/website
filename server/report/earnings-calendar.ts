@@ -29,8 +29,27 @@ function extractInfoDate(info: FinanceCalendarInfo, fallbackDate: string) {
 }
 
 function extractFiscalQuarterLabel(info: FinanceCalendarInfo) {
+  const content = info.content ?? "";
+  const fiscalMatch = content.match(/(\d{4})\s*财年.*?第\s*([1-4])\s*季度/);
+  if (fiscalMatch) {
+    const [, year, quarter] = fiscalMatch;
+    return `FY${year}Q${quarter}`;
+  }
+
+  const standardYearQuarterMatch = content.match(/(\d{4})\s*[Qq]([1-4])/);
+  if (standardYearQuarterMatch) {
+    const [, year, quarter] = standardYearQuarterMatch;
+    return `${year}Q${quarter}`;
+  }
+
+  const standardQuarterYearMatch = content.match(/[Qq]([1-4])\s*(\d{4})/);
+  if (standardQuarterYearMatch) {
+    const [, quarter, year] = standardQuarterYearMatch;
+    return `${year}Q${quarter}`;
+  }
+
   const period = info.ext?.financial_report?.period;
-  const year = info.content?.match(/(\d{4})/)?.[1];
+  const year = content.match(/(\d{4})/)?.[1];
 
   if (!period || !year) {
     return null;
@@ -41,7 +60,7 @@ function extractFiscalQuarterLabel(info: FinanceCalendarInfo) {
     return null;
   }
 
-  return `Q${quarter}${year}`;
+  return `${year}Q${quarter}`;
 }
 
 export async function getNextEarningsDate(symbol: string) {

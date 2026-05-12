@@ -214,44 +214,158 @@ export const authCopy = {
   }
 } as const;
 
-export function translateActionLabel(label: string, locale: Locale) {
-  if (locale === "en") {
-    if (label === "开仓") return "Open";
-    if (label === "谨慎") return "Cautious";
-    if (label === "回避") return "Avoid";
-  }
+const ACTION_LABEL = {
+  OPEN: "open",
+  CAUTIOUS: "cautious",
+  AVOID: "avoid"
+} as const;
 
-  return label;
+type ActionLabel = typeof ACTION_LABEL[keyof typeof ACTION_LABEL];
+
+const TREND_LABEL = {
+  ABOVE_MA: "above_ma",
+  BELOW_MA: "below_ma"
+} as const;
+
+type TrendLabel = typeof TREND_LABEL[keyof typeof TREND_LABEL];
+
+const SEVERITY = {
+  ROUTINE: "routine",
+  EVENT_WINDOW: "event_window",
+  BLACKOUT: "blackout"
+} as const;
+
+type SeverityKey = typeof SEVERITY[keyof typeof SEVERITY];
+
+const VCI_CONCLUSION = {
+  GOOD_TO_SELL: "good_to_sell",
+  WATCH: "watch",
+  AVOID: "avoid"
+} as const;
+
+type VciConclusion = typeof VCI_CONCLUSION[keyof typeof VCI_CONCLUSION];
+
+const MACRO_EVENT_KIND = {
+  FOMC: "fomc",
+  CPI: "cpi",
+  PPI: "ppi"
+} as const;
+
+type MacroEventKind = typeof MACRO_EVENT_KIND[keyof typeof MACRO_EVENT_KIND];
+
+const actionLabelCopy = {
+  zh: {
+    [ACTION_LABEL.OPEN]: "开仓",
+    [ACTION_LABEL.CAUTIOUS]: "谨慎",
+    [ACTION_LABEL.AVOID]: "回避"
+  },
+  en: {
+    [ACTION_LABEL.OPEN]: "Open",
+    [ACTION_LABEL.CAUTIOUS]: "Cautious",
+    [ACTION_LABEL.AVOID]: "Avoid"
+  }
+} as const;
+
+const trendLabelCopy = {
+  zh: {
+    [TREND_LABEL.ABOVE_MA]: "均线上方",
+    [TREND_LABEL.BELOW_MA]: "均线下方"
+  },
+  en: {
+    [TREND_LABEL.ABOVE_MA]: "Above MA",
+    [TREND_LABEL.BELOW_MA]: "Below MA"
+  }
+} as const;
+
+const severityCopy = {
+  zh: {
+    [SEVERITY.ROUTINE]: "常规观察",
+    [SEVERITY.EVENT_WINDOW]: "事件窗口",
+    [SEVERITY.BLACKOUT]: "黑窗期"
+  },
+  en: {
+    [SEVERITY.ROUTINE]: "Routine Watch",
+    [SEVERITY.EVENT_WINDOW]: "Event Window",
+    [SEVERITY.BLACKOUT]: "Blackout"
+  }
+} as const;
+
+const vciConclusionCopy = {
+  zh: {
+    [VCI_CONCLUSION.GOOD_TO_SELL]: "适合开仓",
+    [VCI_CONCLUSION.WATCH]: "观望",
+    [VCI_CONCLUSION.AVOID]: "回避"
+  },
+  en: {
+    [VCI_CONCLUSION.GOOD_TO_SELL]: "Good to Sell",
+    [VCI_CONCLUSION.WATCH]: "Watch",
+    [VCI_CONCLUSION.AVOID]: "Avoid"
+  }
+} as const;
+
+const reportKickerCopy: Record<Locale, string> = {
+  zh: "本策略仅作为期权量化思路，不作为投资建议。",
+  en: "This report is a quantitative framework for options only, not investment advice."
+};
+
+const supportCommentaryCopy: Record<Locale, { buffered: string; thin: string }> = {
+  zh: {
+    buffered: "价格离关键低点仍有缓冲，适合继续筛选更深虚值行权价。",
+    thin: "价格距离关键低点不远，卖方安全垫偏薄。"
+  },
+  en: {
+    buffered: "Price still has some cushion above key lows, so deeper OTM strikes remain worth screening.",
+    thin: "Price is not far from key lows, so the seller's margin of safety looks thinner."
+  }
+};
+
+const countdownFormatterCopy: Record<
+  Locale,
+  {
+    today: string;
+    past: (days: number) => string;
+    future: (days: number) => string;
+  }
+> = {
+  zh: {
+    today: "今天",
+    past: (days) => `已过 ${days} 天`,
+    future: (days) => `还有 ${days} 天`
+  },
+  en: {
+    today: "Today",
+    past: (days) => `${days} days ago`,
+    future: (days) => `${days} days`
+  }
+};
+
+const eventNameCopy = {
+  zh: {
+    [MACRO_EVENT_KIND.FOMC]: "FOMC 会议",
+    [MACRO_EVENT_KIND.CPI]: "美国 CPI",
+    [MACRO_EVENT_KIND.PPI]: "美国 PPI"
+  },
+  en: {
+    [MACRO_EVENT_KIND.FOMC]: "FOMC Meeting",
+    [MACRO_EVENT_KIND.CPI]: "US CPI",
+    [MACRO_EVENT_KIND.PPI]: "US PPI"
+  }
+} as const;
+
+export function translateActionLabel(label: ActionLabel, locale: Locale) {
+  return actionLabelCopy[locale][label];
 }
 
-export function translateTrendLabel(label: string, locale: Locale) {
-  if (locale === "en") {
-    if (label === "均线上方") return "Above MA";
-    if (label === "均线下方") return "Below MA";
-  }
-
-  return label;
+export function translateTrendLabel(label: TrendLabel, locale: Locale) {
+  return trendLabelCopy[locale][label];
 }
 
-export function translateSeverity(label: string, locale: Locale) {
-  if (locale === "en") {
-    if (label === "常规观察") return "Routine Watch";
-    if (label === "事件窗口") return "Event Window";
-    if (label === "黑窗期") return "Blackout";
-  }
-
-  return label;
+export function translateSeverity(label: SeverityKey, locale: Locale) {
+  return severityCopy[locale][label];
 }
 
-export function translateVciConclusion(label: string, locale: Locale) {
-  if (locale === "en") {
-    return label
-      .replace("适合开仓", "Good to Sell")
-      .replace("观望", "Watch")
-      .replace("回避", "Avoid");
-  }
-
-  return label;
+export function translateVciConclusion(label: VciConclusion, locale: Locale) {
+  return vciConclusionCopy[locale][label];
 }
 
 export function getVciHint(label: string, locale: Locale) {
@@ -274,37 +388,24 @@ export function getVciHint(label: string, locale: Locale) {
 }
 
 export function reportKicker(locale: Locale) {
-  return locale === "en"
-    ? "This report is a quantitative framework for options only, not investment advice."
-    : "本策略仅作为期权量化思路，不作为投资建议。";
+  return reportKickerCopy[locale];
 }
 
 export function actionLabelFromStars(stars: number, locale: Locale) {
-  const label = stars >= 4 ? "开仓" : stars === 3 ? "谨慎" : "回避";
+  const label = stars >= 4 ? ACTION_LABEL.OPEN : stars === 3 ? ACTION_LABEL.CAUTIOUS : ACTION_LABEL.AVOID;
   return translateActionLabel(label, locale);
 }
 
 export function vciConclusionLabel(vci: number, locale: Locale) {
-  const label = vci > 0.6 ? "适合开仓" : vci < 0.4 ? "回避" : "观望";
-  return locale === "en"
-    ? vci > 0.6
-      ? "Good to Sell"
-      : vci < 0.4
-        ? "Avoid"
-        : "Watch"
-    : label;
+  const label =
+    vci > 0.6 ? VCI_CONCLUSION.GOOD_TO_SELL : vci < 0.4 ? VCI_CONCLUSION.AVOID : VCI_CONCLUSION.WATCH;
+  return translateVciConclusion(label, locale);
 }
 
 export function supportCommentary(supportDistance: number, locale: Locale) {
-  if (supportDistance >= 7) {
-    return locale === "en"
-      ? "Price still has some cushion above key lows, so deeper OTM strikes remain worth screening."
-      : "价格离关键低点仍有缓冲，适合继续筛选更深虚值行权价。";
-  }
-
-  return locale === "en"
-    ? "Price is not far from key lows, so the seller's margin of safety looks thinner."
-    : "价格距离关键低点不远，卖方安全垫偏薄。";
+  return supportDistance >= 7
+    ? supportCommentaryCopy[locale].buffered
+    : supportCommentaryCopy[locale].thin;
 }
 
 export function formatMarketDate(date: Date, locale: Locale) {
@@ -329,16 +430,12 @@ export function formatMarketDate(date: Date, locale: Locale) {
 }
 
 export function formatCountdown(days: number, locale: Locale) {
-  return locale === "en" ? `${days} days` : `${days} 天`;
+  const formatter = countdownFormatterCopy[locale];
+  if (days === 0) return formatter.today;
+  if (days < 0) return formatter.past(Math.abs(days));
+  return formatter.future(days);
 }
 
-export function translateEventName(name: string, locale: Locale) {
-  if (locale === "en") {
-    return name;
-  }
-
-  if (name === "FOMC Meeting") return "FOMC 会议";
-  if (name === "US CPI") return "美国 CPI";
-  if (name === "US PPI") return "美国 PPI";
-  return name;
+export function translateEventName(name: MacroEventKind, locale: Locale) {
+  return eventNameCopy[locale][name];
 }

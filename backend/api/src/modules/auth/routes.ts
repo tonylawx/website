@@ -8,6 +8,7 @@ import {
   deleteUserById,
   getSessionUserFromCookieHeader,
   getUserById,
+  isEmailVerificationRequired,
   getLoginStatus,
   listUsers,
   registerUser,
@@ -284,20 +285,22 @@ export async function registerUserRoute(c: Context) {
 
   try {
     const user = await registerUser({ email, password, name });
-    const verification = await createEmailVerificationToken(user.email);
-    const currentLocale = locale === "en" ? "en" : "zh";
-
     let previewUrl: string | undefined;
-    if (verification) {
-      const verifyUrl = `${getAuthAppBaseUrl()}/verify-email?token=${verification.token}&locale=${currentLocale}`;
-      const text = localizedAuthText(currentLocale);
-      const mail = await sendAuthEmail({
-        to: user.email,
-        subject: text.verifySubject,
-        text: text.verifyBody(verifyUrl),
-        html: `<p>${text.verifyBody(verifyUrl)}</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`
-      });
-      previewUrl = mail.previewUrl;
+    if (isEmailVerificationRequired()) {
+      const verification = await createEmailVerificationToken(user.email);
+      const currentLocale = locale === "en" ? "en" : "zh";
+
+      if (verification) {
+        const verifyUrl = `${getAuthAppBaseUrl()}/verify-email?token=${verification.token}&locale=${currentLocale}`;
+        const text = localizedAuthText(currentLocale);
+        const mail = await sendAuthEmail({
+          to: user.email,
+          subject: text.verifySubject,
+          text: text.verifyBody(verifyUrl),
+          html: `<p>${text.verifyBody(verifyUrl)}</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`
+        });
+        previewUrl = mail.previewUrl;
+      }
     }
 
     return c.json({ user, previewUrl }, 201);
@@ -321,6 +324,10 @@ export async function registerUserRoute(c: Context) {
 }
 
 export async function resendVerificationRoute(c: Context) {
+  if (!isEmailVerificationRequired()) {
+    return c.json({ ok: true });
+  }
+
   const { email, locale } = (await c.req.json()) as { email?: string; locale?: "zh" | "en" };
   if (!email) {
     return c.json({ error: "Missing email" }, 400);

@@ -219,6 +219,96 @@ const macroEventNameCopy: Record<Locale, Record<MacroEventKind, string>> = {
   }
 };
 
+const reportKickerCopy: Record<Locale, string> = {
+  [LOCALE.ZH]: "本策略仅作为期权量化思路，不作为投资建议。",
+  [LOCALE.EN]: "This report is a quantitative framework for options only, not investment advice."
+};
+
+const supportCommentaryCopy: Record<Locale, { buffered: string; thin: string }> = {
+  [LOCALE.ZH]: {
+    buffered: "价格离关键低点仍有缓冲，适合继续筛选更深虚值行权价。",
+    thin: "价格距离关键低点不远，卖方安全垫偏薄。"
+  },
+  [LOCALE.EN]: {
+    buffered: "Price still has some cushion above key lows, so deeper OTM strikes remain worth screening.",
+    thin: "Price is not far from key lows, so the seller's margin of safety looks thinner."
+  }
+};
+
+const countdownFormatterCopy: Record<
+  Locale,
+  {
+    today: string;
+    past: (days: number) => string;
+    future: (days: number) => string;
+  }
+> = {
+  [LOCALE.ZH]: {
+    today: "今天",
+    past: (days) => `已过 ${days} 天`,
+    future: (days) => `还有 ${days} 天`
+  },
+  [LOCALE.EN]: {
+    today: "Today",
+    past: (days) => `${days} days ago`,
+    future: (days) => `${days} days`
+  }
+};
+
+const earningsTitleFormatterCopy: Record<
+  Locale,
+  {
+    fallbackLabel: string;
+    fallbackRaw: (raw: string) => string;
+    fiscalQuarter: (year: string, quarter: string) => string;
+    quarter: (year: string, quarter: string) => string;
+  }
+> = {
+  [LOCALE.ZH]: {
+    fallbackLabel: "财报",
+    fallbackRaw: (raw) => `${raw}财报`,
+    fiscalQuarter: (year, quarter) => `${year}财年 Q${quarter} 财报`,
+    quarter: (year, quarter) => `${year} Q${quarter} 财报`
+  },
+  [LOCALE.EN]: {
+    fallbackLabel: "Earnings",
+    fallbackRaw: (raw) => raw,
+    fiscalQuarter: (year, quarter) => `FY${year} Q${quarter} Earnings`,
+    quarter: (year, quarter) => `${year} Q${quarter} Earnings`
+  }
+};
+
+const marketSummaryFormatterCopy: Record<
+  Locale,
+  {
+    summary: (value: string, isAbove: boolean) => string;
+  }
+> = {
+  [LOCALE.ZH]: {
+    summary: (value) => `距离 MA120 ${value}`
+  },
+  [LOCALE.EN]: {
+    summary: (value, isAbove) => `${value} ${isAbove ? "above" : "below"} MA120`
+  }
+};
+
+const supportSummaryFormatterCopy: Record<
+  Locale,
+  {
+    fallbackWindow: string;
+    summary: (windowLabel: string, value: string, keySupportLabel: string) => string;
+  }
+> = {
+  [LOCALE.ZH]: {
+    fallbackWindow: "支撑位",
+    summary: (windowLabel, value, keySupportLabel) => `${windowLabel} ${keySupportLabel} ${value}`
+  },
+  [LOCALE.EN]: {
+    fallbackWindow: "Support",
+    summary: (windowLabel, value) => `${windowLabel} Key Support ${value}`
+  }
+};
+
 export function translateActionLabel(label: ActionLabel, locale: Locale) {
   return actionLabelCopy[locale][label];
 }
@@ -255,9 +345,7 @@ export function getVciHint(label: string, locale: Locale) {
 }
 
 export function reportKicker(locale: Locale) {
-  return locale === LOCALE.EN
-    ? "This report is a quantitative framework for options only, not investment advice."
-    : "本策略仅作为期权量化思路，不作为投资建议。";
+  return reportKickerCopy[locale];
 }
 
 export function actionLabelFromStars(stars: number, locale: Locale) {
@@ -275,15 +363,9 @@ export function vciConclusionLabel(vci: number, locale: Locale) {
 }
 
 export function supportCommentary(supportDistance: number, locale: Locale) {
-  if (supportDistance >= 7) {
-    return locale === LOCALE.EN
-      ? "Price still has some cushion above key lows, so deeper OTM strikes remain worth screening."
-      : "价格离关键低点仍有缓冲，适合继续筛选更深虚值行权价。";
-  }
-
-  return locale === LOCALE.EN
-    ? "Price is not far from key lows, so the seller's margin of safety looks thinner."
-    : "价格距离关键低点不远，卖方安全垫偏薄。";
+  return supportDistance >= 7
+    ? supportCommentaryCopy[locale].buffered
+    : supportCommentaryCopy[locale].thin;
 }
 
 export function formatMarketDate(date: Date, locale: Locale) {
@@ -308,15 +390,11 @@ export function formatMarketDate(date: Date, locale: Locale) {
 }
 
 export function formatCountdown(days: number, locale: Locale) {
-  if (locale === LOCALE.EN) {
-    if (days === 0) return "Today";
-    if (days < 0) return `${Math.abs(days)} days ago`;
-    return `${days} days`;
-  }
+  const formatter = countdownFormatterCopy[locale];
 
-  if (days === 0) return "今天";
-  if (days < 0) return `已过 ${Math.abs(days)} 天`;
-  return `还有 ${days} 天`;
+  if (days === 0) return formatter.today;
+  if (days < 0) return formatter.past(Math.abs(days));
+  return formatter.future(days);
 }
 
 export function eventShortLabel(kind: MacroEventKind, _locale: Locale) {
@@ -324,21 +402,41 @@ export function eventShortLabel(kind: MacroEventKind, _locale: Locale) {
 }
 
 export function earningsEventLabel(locale: Locale) {
-  return locale === LOCALE.EN ? "Earnings" : "财报";
+  return earningsTitleFormatterCopy[locale].fallbackLabel;
 }
 
 export function formatFiscalQuarterEarningsTitle(raw: string | null, locale: Locale) {
+  const formatter = earningsTitleFormatterCopy[locale];
+
   if (!raw) {
-    return earningsEventLabel(locale);
+    return formatter.fallbackLabel;
   }
 
-  const match = raw.match(/^Q([1-4])(\d{4})$/);
+  const fiscalMatch = raw.match(/^FY(\d{4})Q([1-4])$/i);
+  if (fiscalMatch) {
+    const [, year, quarter] = fiscalMatch;
+    return formatter.fiscalQuarter(year, quarter);
+  }
+
+  const match = raw.match(/^(?:Q([1-4])(\d{4})|(\d{4})Q([1-4]))$/i);
   if (!match) {
-    return locale === LOCALE.EN ? raw : `${raw}财报`;
+    return formatter.fallbackRaw(raw);
   }
 
-  const [, quarter, year] = match;
-  return locale === LOCALE.EN ? `${year} Q${quarter} Earnings` : `${year} Q${quarter} 财报`;
+  const quarter = match[1] ?? match[4];
+  const year = match[2] ?? match[3];
+  return formatter.quarter(year, quarter);
+}
+
+export function formatMarketSummary(distanceToMa120: number, locale: Locale) {
+  const value = `${Math.abs(distanceToMa120).toFixed(2)}%`;
+  return marketSummaryFormatterCopy[locale].summary(value, distanceToMa120 >= 0);
+}
+
+export function formatSupportSummary(windowLabel: string | null, distance: number, locale: Locale) {
+  const value = `${Math.abs(distance).toFixed(1)}%`;
+  const formatter = supportSummaryFormatterCopy[locale];
+  return formatter.summary(windowLabel ?? formatter.fallbackWindow, value, uiCopy[locale].keySupport);
 }
 
 export function translateEventName(kind: MacroEventKind, locale: Locale) {

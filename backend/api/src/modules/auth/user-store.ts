@@ -60,6 +60,10 @@ type AuthTokenResult = {
   expiresAt: string;
 };
 
+export function isEmailVerificationRequired() {
+  return process.env.AUTH_REQUIRE_EMAIL_VERIFICATION === "true";
+}
+
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
@@ -312,7 +316,7 @@ export async function getLoginStatus(email: string, password: string): Promise<L
   }
 
   const publicUser = toPublicUser(user);
-  if (!publicUser.emailVerified) {
+  if (isEmailVerificationRequired() && !publicUser.emailVerified) {
     return { ok: false, code: "EMAIL_NOT_VERIFIED" };
   }
 
@@ -336,6 +340,7 @@ export async function registerUser(input: { email: string; password: string; nam
 
   const passwordHash = await Bun.password.hash(password);
   const id = crypto.randomUUID();
+  const emailVerifiedAt = isEmailVerificationRequired() ? null : new Date().toISOString();
   const sql = getSql();
   const existing = await sql<{ id: string }[]>`
     SELECT id
@@ -350,7 +355,7 @@ export async function registerUser(input: { email: string; password: string; nam
 
   await sql`
     INSERT INTO auth_users (id, email, name, role, password_hash, email_verified_at)
-    VALUES (${id}, ${email}, ${name}, ${"user"}, ${passwordHash}, NULL)
+    VALUES (${id}, ${email}, ${name}, ${"user"}, ${passwordHash}, ${emailVerifiedAt})
   `;
 
   const user = {
@@ -358,7 +363,7 @@ export async function registerUser(input: { email: string; password: string; nam
     email,
     name,
     role: "user",
-    emailVerified: false
+    emailVerified: !isEmailVerificationRequired()
   } satisfies PublicUser;
 
   return user;
