@@ -7,6 +7,7 @@ import { authCopy, normalizeLocale, type Locale } from "@tonylaw/shared/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { buildAuthApiUrl } from "@/lib/auth-api";
 
 type AuthMode = "signin" | "register";
 
@@ -17,10 +18,6 @@ function readCallbackUrl() {
 
   const params = new URLSearchParams(window.location.search);
   return params.get("callbackUrl") ?? "https://optix.tonylaw.cc";
-}
-
-function authApiBaseUrl() {
-  return process.env.NEXT_PUBLIC_AUTH_API_URL ?? (process.env.NODE_ENV === "production" ? "https://api.tonylaw.cc/auth" : "http://localhost:3001/auth");
 }
 
 export default function SignInPage() {
@@ -63,7 +60,7 @@ export default function SignInPage() {
       return;
     }
 
-    const response = await fetch(`${authApiBaseUrl()}/api/public/auth/resend-verification`, {
+    const response = await fetch(buildAuthApiUrl("/api/public/auth/resend-verification"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email, locale })
@@ -87,7 +84,7 @@ export default function SignInPage() {
         return;
       }
 
-      const response = await fetch(`${authApiBaseUrl()}/api/public/auth/register`, {
+      const response = await fetch(buildAuthApiUrl("/api/public/auth/register"), {
         method: "POST",
         headers: {
           "content-type": "application/json"
@@ -113,7 +110,7 @@ export default function SignInPage() {
       return;
     }
 
-    const statusResponse = await fetch(`${authApiBaseUrl()}/api/public/auth/login-status`, {
+    const statusResponse = await fetch(buildAuthApiUrl("/api/public/auth/login-status"), {
       method: "POST",
       headers: {
         "content-type": "application/json"
@@ -135,7 +132,7 @@ export default function SignInPage() {
       return;
     }
 
-    const signInResponse = await fetch(`${authApiBaseUrl()}/api/public/auth/sign-in`, {
+    const signInResponse = await fetch(buildAuthApiUrl("/api/public/auth/sign-in"), {
       method: "POST",
       headers: {
         "content-type": "application/json"

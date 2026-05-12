@@ -4,10 +4,7 @@ import type { FormEvent } from "react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { authCopy, normalizeLocale, type Locale } from "@tonylaw/shared/i18n";
-
-function authApiBaseUrl() {
-  return process.env.NEXT_PUBLIC_AUTH_API_URL ?? (process.env.NODE_ENV === "production" ? "https://api.tonylaw.cc/auth" : "http://localhost:3001/auth");
-}
+import { buildAuthApiUrl } from "@/lib/auth-api";
 
 export default function ForgotPasswordPage() {
   const [locale, setLocale] = useState<Locale>("zh");
@@ -24,7 +21,7 @@ export default function ForgotPasswordPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const response = await fetch(`${authApiBaseUrl()}/api/public/auth/forgot-password`, {
+    const response = await fetch(buildAuthApiUrl("/api/public/auth/forgot-password"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email, locale })
