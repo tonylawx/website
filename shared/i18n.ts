@@ -418,13 +418,13 @@ export function formatFiscalQuarterEarningsTitle(raw: string | null, locale: Loc
     return formatter.fiscalQuarter(year, quarter);
   }
 
-  const match = raw.match(/^(?:Q([1-4])(\d{4})|(\d{4})Q([1-4]))$/i);
+  const match = raw.match(/^(?:Q([1-4])(\d{4})|([1-4])Q(\d{4})|(\d{4})Q([1-4]))$/i);
   if (!match) {
     return formatter.fallbackRaw(raw);
   }
 
-  const quarter = match[1] ?? match[4];
-  const year = match[2] ?? match[3];
+  const quarter = match[1] ?? match[3] ?? match[6];
+  const year = match[2] ?? match[4] ?? match[5];
   return formatter.quarter(year, quarter);
 }
 

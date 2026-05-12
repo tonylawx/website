@@ -356,6 +356,29 @@ const countdownFormatterCopy: Record<
   }
 };
 
+const earningsTitleFormatterCopy: Record<
+  Locale,
+  {
+    fallbackLabel: string;
+    fallbackRaw: (raw: string) => string;
+    fiscalQuarter: (year: string, quarter: string) => string;
+    quarter: (year: string, quarter: string) => string;
+  }
+> = {
+  zh: {
+    fallbackLabel: "财报",
+    fallbackRaw: (raw) => `${raw}财报`,
+    fiscalQuarter: (year, quarter) => `${year}财年 Q${quarter} 财报`,
+    quarter: (year, quarter) => `${year} Q${quarter} 财报`
+  },
+  en: {
+    fallbackLabel: "Earnings",
+    fallbackRaw: (raw) => raw,
+    fiscalQuarter: (year, quarter) => `FY${year} Q${quarter} Earnings`,
+    quarter: (year, quarter) => `${year} Q${quarter} Earnings`
+  }
+};
+
 const eventNameCopy = {
   zh: {
     [MACRO_EVENT_KIND.FOMC]: "FOMC 会议",
@@ -457,6 +480,29 @@ export function formatCountdown(days: number, locale: Locale) {
   if (days === 0) return formatter.today;
   if (days < 0) return formatter.past(Math.abs(days));
   return formatter.future(days);
+}
+
+export function formatFiscalQuarterEarningsTitle(raw: string | null, locale: Locale) {
+  const formatter = earningsTitleFormatterCopy[locale];
+
+  if (!raw) {
+    return formatter.fallbackLabel;
+  }
+
+  const fiscalMatch = raw.match(/^FY(\d{4})Q([1-4])$/i);
+  if (fiscalMatch) {
+    const [, year, quarter] = fiscalMatch;
+    return formatter.fiscalQuarter(year, quarter);
+  }
+
+  const match = raw.match(/^(?:Q([1-4])(\d{4})|([1-4])Q(\d{4})|(\d{4})Q([1-4]))$/i);
+  if (!match) {
+    return formatter.fallbackRaw(raw);
+  }
+
+  const quarter = match[1] ?? match[3] ?? match[6];
+  const year = match[2] ?? match[4] ?? match[5];
+  return formatter.quarter(year, quarter);
 }
 
 export function translateEventName(name: MacroEventKind, locale: Locale) {
