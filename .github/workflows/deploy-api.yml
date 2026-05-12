@@ -1,0 +1,59 @@
+name: Deploy API
+
+on:
+  push:
+    branches:
+      - main
+      - codex/user-module-integration
+    paths:
+      - ".github/workflows/deploy-api.yml"
+      - "Dockerfile"
+      - "backend/api/**"
+      - "ops/api/**"
+      - "package.json"
+      - "bun.lock"
+      - "packages/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/option-tool-api
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        run: echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build API image
+        run: |
+          docker build \
+            --tag "$IMAGE_NAME:${{ github.sha }}" \
+            --tag "$IMAGE_NAME:${{ github.ref_name }}" \
+            .
+
+      - name: Push API image
+        run: |
+          docker push "$IMAGE_NAME:${{ github.sha }}"
+          docker push "$IMAGE_NAME:${{ github.ref_name }}"
+
+      - name: Configure SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.API_DEPLOY_SSH_KEY }}" > ~/.ssh/api_deploy_key
+          chmod 600 ~/.ssh/api_deploy_key
+          ssh-keyscan -H "${{ secrets.API_DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy API on VPS
+        run: |
+          ssh -i ~/.ssh/api_deploy_key \
+            "${{ secrets.API_DEPLOY_USER }}@${{ secrets.API_DEPLOY_HOST }}" \
+            "GHCR_USERNAME='${{ github.actor }}' GHCR_TOKEN='${{ github.token }}' API_IMAGE='$IMAGE_NAME:${{ github.sha }}' DEPLOY_BRANCH='${{ github.ref_name }}' /opt/tonylaw/option-tool/ops/api/deploy.sh"

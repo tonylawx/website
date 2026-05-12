@@ -1,0 +1,4 @@
+api.tonylaw.cc {
+  encode zstd gzip
+  reverse_proxy api:3001
+}

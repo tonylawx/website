@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useEffect, useRef, useState } from "react";
+import { getAuthApiUrl } from "@tonylaw/auth/shared";
 import { IOSInstallBanner } from "@/components/ios-install-banner";
 import { OptionYieldCalculator } from "@/components/option-yield-calculator";
 import { ReportPage } from "@/components/report-page";
@@ -16,10 +17,17 @@ import { uiCopy } from "@/shared/i18n";
 export const dynamic = "force-dynamic";
 
 const DEFAULT_SYMBOL = "QQQ.US";
-const PROD_API_BASE_URL = "https://api.optix.tonylaw.cc";
+const PROD_API_BASE_URL = "https://api.tonylaw.cc/optix";
 const SECURITIES_STORAGE_KEY = "optix-us-securities-cache";
 const SECURITIES_STORAGE_VERSION = 1;
 const MIN_VALID_SECURITIES_CACHE_SIZE = 100;
+
+type CurrentUser = {
+  id: string | null;
+  name: string | null;
+  email: string | null;
+  role: string | null;
+};
 
 function displaySymbol(symbol: string) {
   return symbol.replace(/\.US$/, "");
@@ -39,15 +47,20 @@ function normalizeSymbol(symbol?: string | null) {
 }
 
 function getApiBaseUrl() {
+  const withOptixPrefix = (value: string) =>
+    value.replace(/\/$/, "").endsWith("/optix")
+      ? value.replace(/\/$/, "")
+      : `${value.replace(/\/$/, "")}/optix`;
+
   if (process.env.NEXT_PUBLIC_API_BASE_URL) {
-    return process.env.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "");
+    return withOptixPrefix(process.env.NEXT_PUBLIC_API_BASE_URL);
   }
 
   if (typeof window !== "undefined" && window.location.hostname === HOSTNAME.LOCALHOST) {
-    return "http://localhost:3001";
+    return withOptixPrefix("http://localhost:3001");
   }
 
-  return PROD_API_BASE_URL;
+  return withOptixPrefix(PROD_API_BASE_URL);
 }
 
 function ReportSkeleton() {
@@ -142,6 +155,9 @@ function ReportSkeleton() {
 export default function Page() {
   const [locale, setLocale] = useState<Locale>(LOCALE.ZH);
   const [tab, setTab] = useState<TabKey>(TAB.REPORT);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [currentUrl, setCurrentUrl] = useState("");
   const [report, setReport] = useState<SellPutReport | null>(null);
   const [selectedSymbol, setSelectedSymbol] = useState(DEFAULT_SYMBOL);
   const [query, setQuery] = useState(displaySymbol(DEFAULT_SYMBOL));
@@ -160,6 +176,8 @@ export default function Page() {
     if (typeof window === "undefined") {
       return;
     }
+
+    setCurrentUrl(window.location.href);
 
     const params = new URLSearchParams(window.location.search);
     const nextSymbol = normalizeSymbol(params.get("symbol"));
@@ -282,13 +300,52 @@ export default function Page() {
   useEffect(() => {
     let cancelled = false;
 
+    async function loadCurrentUser() {
+      setIsLoadingUser(true);
+
+      try {
+        const response = await fetch("/api/me", {
+          cache: "no-store",
+          credentials: "include"
+        });
+
+        if (!response.ok) {
+          throw new Error("Unauthorized");
+        }
+
+        const payload = (await response.json()) as { user?: CurrentUser | null };
+        if (!cancelled) {
+          setCurrentUser(payload.user ?? null);
+        }
+      } catch {
+        if (!cancelled) {
+          setCurrentUser(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingUser(false);
+        }
+      }
+    }
+
+    void loadCurrentUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
     async function loadReport(symbol: string) {
       setIsLoadingReport(true);
       setReportError("");
 
       try {
         const response = await fetch(`${getApiBaseUrl()}/api/report?symbol=${encodeURIComponent(symbol)}&locale=${locale}`, {
-          cache: "no-store"
+          cache: "no-store",
+          credentials: "include"
         });
 
         if (!response.ok) {
@@ -339,7 +396,8 @@ export default function Page() {
 
       try {
         const response = await fetch(`${getApiBaseUrl()}/api/securities`, {
-          cache: "no-store"
+          cache: "no-store",
+          credentials: "include"
         });
 
         if (!response.ok) {
@@ -403,7 +461,8 @@ export default function Page() {
 
       try {
         const response = await fetch(`${getApiBaseUrl()}/api/securities`, {
-          cache: "no-store"
+          cache: "no-store",
+          credentials: "include"
         });
 
         if (!response.ok) {
@@ -473,26 +532,47 @@ export default function Page() {
     { value: LOCALE.ZH, label: text.localeZh },
     { value: LOCALE.EN, label: text.localeEn }
   ] as const;
+  const accountName = currentUser?.name || currentUser?.email?.split("@")[0] || text.accountAnonymous;
+  const signOutHref = currentUrl
+    ? `${getAuthApiUrl()}/api/public/auth/sign-out?callbackUrl=${encodeURIComponent(currentUrl)}`
+    : "#";
 
   return (
     <main className="px-4 py-3 sm:py-4">
       <section className="mx-auto max-w-[980px]">
         <IOSInstallBanner locale={locale} />
 
-        <div className="mb-2.5 flex items-center gap-2">
+        <div className="mb-2.5 flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 rounded-full border border-app-line bg-white/82 px-4 py-2 text-sm font-semibold text-app-navy shadow-app">
+              <span className="block truncate">
+                {isLoadingUser ? text.accountLoading : accountName}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <SegmentedControl
+                className="shrink-0"
+                itemClassName="min-w-12 px-3"
+                onValueChange={(value) => setLocale(value as Locale)}
+                options={localeOptions}
+                value={locale}
+              />
+              <Button
+                asChild
+                className="h-12 rounded-full border border-app-line bg-white/82 px-4 text-sm font-semibold text-app-navy shadow-app hover:bg-white"
+                variant="outline"
+              >
+                <a href={signOutHref}>{text.accountSignOut}</a>
+              </Button>
+            </div>
+          </div>
+
           <SegmentedControl
-            className="min-w-0 flex-1"
+            className="min-w-0"
             itemClassName="flex-1"
             onValueChange={(value) => setTab(value as TabKey)}
             options={tabOptions}
             value={tab}
-          />
-          <SegmentedControl
-            className="shrink-0"
-            itemClassName="min-w-12 px-3"
-            onValueChange={(value) => setLocale(value as Locale)}
-            options={localeOptions}
-            value={locale}
           />
         </div>
 

@@ -1,26 +1,28 @@
-FROM node:22-trixie-slim
+FROM oven/bun:1.3.11-slim
 
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV BUN_INSTALL="/root/.bun"
-ENV PATH="$BUN_INSTALL/bin:$PATH"
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip \
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates curl \
   && rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL https://bun.sh/install | bash
-
 COPY package.json bun.lock ./
+COPY tsconfig.base.json ./
+COPY backend/api/package.json backend/api/package.json
+COPY packages/auth/package.json packages/auth/package.json
+COPY packages/contracts/package.json packages/contracts/package.json
+COPY packages/db/package.json packages/db/package.json
+COPY packages/shared/package.json packages/shared/package.json
+COPY packages/ui/package.json packages/ui/package.json
+COPY frontend/auth-web/package.json frontend/auth-web/package.json
 
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --production --filter @tonylaw/api
 
-COPY server ./server
-COPY shared ./shared
-COPY server.ts ./
-COPY tsconfig.json ./
-COPY next.config.ts ./
+COPY backend/api ./backend/api
+COPY packages ./packages
 
 EXPOSE 3001
 
-CMD ["bun", "run", "api:start"]
+CMD ["bun", "run", "--cwd", "backend/api", "start"]
