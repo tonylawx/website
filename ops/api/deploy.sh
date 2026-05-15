@@ -22,6 +22,11 @@ fi
 install -d -m 755 "$DEPLOY_ENV_DIR"
 printf 'API_IMAGE=%s\n' "$API_IMAGE" > "$DEPLOY_ENV_FILE"
 
+if [[ "${PRUNE_BEFORE_PULL:-true}" != "false" ]]; then
+  docker image prune -af >/dev/null
+  docker builder prune -af >/dev/null
+fi
+
 if [[ "${SKIP_PULL:-false}" != "true" ]]; then
   docker compose -f "$COMPOSE_FILE" --env-file "$DEPLOY_ENV_FILE" pull
 fi
