@@ -23,10 +23,33 @@ permissions:
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/option-tool-api
+  HEALTHCHECK_URL: https://api.tonylaw.cc/health
+
+concurrency:
+  group: deploy-api-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  verify:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+  build-image:
+    runs-on: ubuntu-latest
+    needs: verify
 
     steps:
       - name: Checkout
@@ -47,6 +70,11 @@ jobs:
           docker push "$IMAGE_NAME:${{ github.sha }}"
           docker push "$IMAGE_NAME:${{ github.ref_name }}"
 
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-image
+
+    steps:
       - name: Configure SSH
         run: |
           install -m 700 -d ~/.ssh
@@ -59,3 +87,22 @@ jobs:
           ssh -i ~/.ssh/api_deploy_key \
             "${{ secrets.API_DEPLOY_USER }}@${{ secrets.API_DEPLOY_HOST }}" \
             "GHCR_USERNAME='${{ github.actor }}' GHCR_TOKEN='${{ github.token }}' API_IMAGE='$IMAGE_NAME:${{ github.sha }}' DEPLOY_BRANCH='${{ github.ref_name }}' /opt/tonylaw/option-tool/ops/api/deploy.sh"
+
+  health-check:
+    runs-on: ubuntu-latest
+    needs: deploy
+
+    steps:
+      - name: Wait for API health
+        run: |
+          for attempt in {1..20}; do
+            if curl -fsSL "$HEALTHCHECK_URL"; then
+              exit 0
+            fi
+
+            echo "Waiting for API health... ($attempt/20)"
+            sleep 3
+          done
+
+          echo "API health check failed"
+          exit 1
