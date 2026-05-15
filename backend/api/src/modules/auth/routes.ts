@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { deleteCookie, setCookie } from "hono/cookie";
 import { getAuthCookieDomain, getSessionCookieName, isProductionAuth } from "@tonylaw/auth/shared";
+import { authCopy } from "@tonylaw/shared/i18n";
 import {
   createSessionForUser,
   createEmailVerificationToken,
@@ -24,22 +25,12 @@ function getAuthAppBaseUrl() {
   return (process.env.AUTH_APP_URL ?? (process.env.NODE_ENV === "production" ? "https://auth.tonylaw.cc" : "http://localhost:3003")).replace(/\/$/, "");
 }
 
-function localizedAuthText(locale: "zh" | "en") {
-  if (locale === "en") {
-    return {
-      verifySubject: "Verify your tonylaw.cc account",
-      verifyBody: (url: string) => `Please verify your account by opening: ${url}`,
-      resetSubject: "Reset your tonylaw.cc password",
-      resetBody: (url: string) => `Reset your password by opening: ${url}`
-    };
-  }
+function fillTemplate(template: string, values: Record<string, string>) {
+  return template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? "");
+}
 
-  return {
-    verifySubject: "验证你的 tonylaw.cc 账号",
-    verifyBody: (url: string) => `请点击下面的链接验证邮箱：${url}`,
-    resetSubject: "重置你的 tonylaw.cc 密码",
-    resetBody: (url: string) => `请点击下面的链接重置密码：${url}`
-  };
+function actionEmailHtml(intro: string, action: string, url: string) {
+  return `<p>${intro}</p><p><a href="${url}">${action}</a></p>`;
 }
 
 function setSessionCookie(c: Context, token: string, expiresAt: string) {
@@ -286,25 +277,23 @@ export async function registerUserRoute(c: Context) {
   try {
     const user = await registerUser({ email, password, name });
     const emailVerificationRequired = isEmailVerificationRequired();
-    let previewUrl: string | undefined;
     if (emailVerificationRequired) {
       const verification = await createEmailVerificationToken(user.email);
       const currentLocale = locale === "en" ? "en" : "zh";
 
       if (verification) {
         const verifyUrl = `${getAuthAppBaseUrl()}/verify-email?token=${verification.token}&locale=${currentLocale}`;
-        const text = localizedAuthText(currentLocale);
-        const mail = await sendAuthEmail({
+        const text = authCopy[currentLocale];
+        await sendAuthEmail({
           to: user.email,
-          subject: text.verifySubject,
-          text: text.verifyBody(verifyUrl),
-          html: `<p>${text.verifyBody(verifyUrl)}</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`
+          subject: text.verifyEmailSubject,
+          text: fillTemplate(text.verifyEmailText, { url: verifyUrl }),
+          html: actionEmailHtml(text.verifyEmailHtmlIntro, text.verifyEmailAction, verifyUrl)
         });
-        previewUrl = mail.previewUrl;
       }
     }
 
-    return c.json({ user, previewUrl, emailVerificationRequired }, 201);
+    return c.json({ user, emailVerificationRequired }, 201);
   } catch (error) {
     const message = error instanceof Error ? error.message : "REGISTER_FAILED";
 
@@ -341,15 +330,15 @@ export async function resendVerificationRoute(c: Context) {
 
   const currentLocale = locale === "en" ? "en" : "zh";
   const verifyUrl = `${getAuthAppBaseUrl()}/verify-email?token=${verification.token}&locale=${currentLocale}`;
-  const text = localizedAuthText(currentLocale);
-  const mail = await sendAuthEmail({
+  const text = authCopy[currentLocale];
+  await sendAuthEmail({
     to: verification.user.email,
-    subject: text.verifySubject,
-    text: text.verifyBody(verifyUrl),
-    html: `<p>${text.verifyBody(verifyUrl)}</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`
+    subject: text.verifyEmailSubject,
+    text: fillTemplate(text.verifyEmailText, { url: verifyUrl }),
+    html: actionEmailHtml(text.verifyEmailHtmlIntro, text.verifyEmailAction, verifyUrl)
   });
 
-  return c.json({ ok: true, previewUrl: mail.previewUrl });
+  return c.json({ ok: true });
 }
 
 export async function verifyEmailRoute(c: Context) {
@@ -379,15 +368,15 @@ export async function forgotPasswordRoute(c: Context) {
 
   const currentLocale = locale === "en" ? "en" : "zh";
   const resetUrl = `${getAuthAppBaseUrl()}/reset-password?token=${reset.token}&locale=${currentLocale}`;
-  const text = localizedAuthText(currentLocale);
-  const mail = await sendAuthEmail({
+  const text = authCopy[currentLocale];
+  await sendAuthEmail({
     to: reset.user.email,
-    subject: text.resetSubject,
-    text: text.resetBody(resetUrl),
-    html: `<p>${text.resetBody(resetUrl)}</p><p><a href="${resetUrl}">${resetUrl}</a></p>`
+    subject: text.resetPasswordSubject,
+    text: fillTemplate(text.resetPasswordText, { url: resetUrl }),
+    html: actionEmailHtml(text.resetPasswordHtmlIntro, text.resetPasswordAction, resetUrl)
   });
 
-  return c.json({ ok: true, previewUrl: mail.previewUrl });
+  return c.json({ ok: true });
 }
 
 export async function resetPasswordRoute(c: Context) {

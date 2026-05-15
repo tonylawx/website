@@ -10,7 +10,6 @@ export default function ForgotPasswordPage() {
   const [locale, setLocale] = useState<Locale>("zh");
   const [email, setEmail] = useState("");
   const [success, setSuccess] = useState("");
-  const [previewUrl, setPreviewUrl] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -26,9 +25,7 @@ export default function ForgotPasswordPage() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email, locale })
     });
-    const payload = (await response.json().catch(() => ({}))) as { previewUrl?: string };
-    setPreviewUrl(payload.previewUrl ?? "");
-    setSuccess(text.forgotSuccess);
+    setSuccess(response.ok ? text.forgotSuccess : text.registerFailed);
   }
 
   return (
@@ -48,7 +45,6 @@ export default function ForgotPasswordPage() {
                   <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required className="theme-input" />
                 </label>
                 {success ? <p className="theme-status-success m-0">{success}</p> : null}
-                {previewUrl ? <a href={previewUrl} className="text-sm text-navy underline" target="_blank" rel="noreferrer">{text.previewLink}</a> : null}
                 <button type="submit" className="theme-button-primary">{text.forgotSubmit}</button>
               </form>
               <div className="mt-4 text-sm">

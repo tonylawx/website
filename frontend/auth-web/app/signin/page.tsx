@@ -31,7 +31,6 @@ export default function SignInPage() {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [success, setSuccess] = useState("");
-  const [previewUrl, setPreviewUrl] = useState("");
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -83,8 +82,10 @@ export default function SignInPage() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ email, locale })
     });
-    const payload = (await response.json().catch(() => ({}))) as { previewUrl?: string };
-    setPreviewUrl(payload.previewUrl ?? "");
+    if (!response.ok) {
+      setError(text.registerFailed);
+      return;
+    }
     setSuccess(text.resendVerificationSuccess);
   }
 
@@ -93,7 +94,6 @@ export default function SignInPage() {
     setPending(true);
     setError("");
     setSuccess("");
-    setPreviewUrl("");
 
     if (mode === "register") {
       if (password !== confirmPassword) {
@@ -112,7 +112,6 @@ export default function SignInPage() {
 
       const payload = (await response.json().catch(() => ({ error: text.registerFailed }))) as {
         error?: string;
-        previewUrl?: string;
         emailVerificationRequired?: boolean;
       };
 
@@ -122,7 +121,6 @@ export default function SignInPage() {
         return;
       }
 
-      setPreviewUrl(payload.previewUrl ?? "");
       if (payload.emailVerificationRequired) {
         setPending(false);
         setMode("signin");
@@ -205,7 +203,6 @@ export default function SignInPage() {
                   setMode(value as AuthMode);
                   setError("");
                   setSuccess("");
-                  setPreviewUrl("");
                 }}
                 className="w-full"
               >
@@ -248,7 +245,6 @@ export default function SignInPage() {
 
                 {success ? <p className="theme-status-success m-0">{success}</p> : null}
                 {error ? <p className="theme-status-error m-0">{error}</p> : null}
-                {previewUrl ? <a href={previewUrl} className="text-sm text-navy underline" target="_blank" rel="noreferrer">{text.previewLink}</a> : null}
 
                 <Button type="submit" disabled={pending} className="theme-button-primary h-[50px] rounded-2xl text-[15px] font-bold">
                   {pending
