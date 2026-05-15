@@ -45,6 +45,12 @@ This repository includes an in-repo AI workflow under:
 
 - [`.ai/README.md`](.ai/README.md)
 
+## Product Direction
+
+The current product path and smallest commercial MVP are documented in:
+
+- [`docs/product-mvp.md`](docs/product-mvp.md)
+
 Recommended flow:
 
 1. Start with `.ai/prompts/plan.md`
