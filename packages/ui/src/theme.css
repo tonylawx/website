@@ -34,11 +34,14 @@
   --shadow-paper: 0 24px 60px rgba(23, 29, 45, 0.12);
 }
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 * {
   box-sizing: border-box;
 }
 
 html {
+  color-scheme: light;
   background:
     radial-gradient(circle at top left, rgba(223, 196, 144, 0.35), transparent 30%),
     linear-gradient(180deg, #faf7f0 0%, #f0ebe1 100%);
@@ -46,6 +49,9 @@ html {
 
 body {
   @apply min-h-screen overflow-x-hidden text-ink antialiased;
+  background:
+    radial-gradient(circle at top left, rgba(223, 196, 144, 0.35), transparent 30%),
+    linear-gradient(180deg, #faf7f0 0%, #f0ebe1 100%);
   margin: 0;
   font-family:
     "Iowan Old Style",
