@@ -8,11 +8,13 @@ on:
     paths:
       - ".github/workflows/deploy-api.yml"
       - "Dockerfile"
+      - "tsconfig.base.json"
       - "backend/api/**"
       - "ops/api/**"
-      - "package.json"
-      - "bun.lock"
-      - "packages/**"
+      - "packages/auth/**"
+      - "packages/contracts/**"
+      - "packages/db/**"
+      - "packages/shared/**"
   workflow_dispatch:
 
 permissions:
