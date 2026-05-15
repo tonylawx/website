@@ -18,7 +18,7 @@ COPY packages/shared/package.json packages/shared/package.json
 COPY packages/ui/package.json packages/ui/package.json
 COPY frontend/auth-web/package.json frontend/auth-web/package.json
 
-RUN bun install --frozen-lockfile --production --filter @tonylaw/api
+RUN bun install --frozen-lockfile --production --omit peer --filter @tonylaw/api
 
 COPY backend/api ./backend/api
 COPY packages ./packages
