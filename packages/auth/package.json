@@ -3,9 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "dependencies": {
+  "peerDependencies": {
     "next": "^15.5.14",
     "next-auth": "^4.24.13"
+  },
+  "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    },
+    "next-auth": {
+      "optional": true
+    }
   },
   "exports": {
     "./shared": "./src/shared.ts",
