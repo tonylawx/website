@@ -125,7 +125,7 @@ export function OptionYieldCalculator({ locale = LOCALE.ZH }: Props) {
       <div className="grid gap-3 p-3 lg:grid-cols-2">
         <article className="rounded-[18px] border border-app-navy/7 bg-white p-4">
           <h3 className="text-base font-semibold">{text.calculatorInputs}</h3>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="mt-3 grid grid-cols-2 gap-2.5 sm:gap-3">
             <label className="grid gap-1.5">
               <span className="text-xs text-app-muted">{text.premiumLabel}</span>
               <ClearableInput
