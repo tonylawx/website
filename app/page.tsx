@@ -7,6 +7,7 @@ import { IOSInstallBanner } from "@/components/ios-install-banner";
 import { OptionYieldCalculator } from "@/components/option-yield-calculator";
 import { ReportPage } from "@/components/report-page";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -196,13 +197,11 @@ function ReportSkeleton() {
 function OpportunityCard({
   item,
   rank,
-  locale,
-  onViewReport
+  locale
 }: {
   item: SellPutOpportunity;
   rank: number;
   locale: Locale;
-  onViewReport: (symbol: string) => void;
 }) {
   const text = uiCopy[locale];
   const stars = `${"★".repeat(item.rating)}${"☆".repeat(5 - item.rating)}`;
@@ -230,45 +229,44 @@ function OpportunityCard({
           <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", statusClassName(item.riskLevel))}>
             {stars} · {item.score}
           </span>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => {
-              void navigator.clipboard?.writeText(item.contractSymbol);
-            }}
-          >
-            {text.opportunitiesCopyContract}
-          </Button>
-          <Button size="sm" onClick={() => onViewReport(item.symbol)}>
-            {text.opportunitiesViewReport}
-          </Button>
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-        {[
-          [text.opportunityAnnualizedYield, formatPercent(item.annualizedYield)],
-          [text.opportunityBuffer, formatPercent(item.downsideBuffer)],
-          [text.opportunityDelta, item.delta === null ? "--" : Math.abs(item.delta).toFixed(2)],
-          [text.opportunityBidAsk, item.ask === null ? formatMoney(item.bid) : `${formatMoney(item.bid)} / ${formatMoney(item.ask)}`],
-          [text.opportunityOi, item.openInterest.toLocaleString()],
-          [text.opportunityVolume, item.volume.toLocaleString()],
-          [text.opportunityScore, `${item.score}`]
-        ].map(([label, value]) => (
-          <div key={label} className="rounded-2xl bg-[#f8f5ed] px-3 py-2">
-            <p className="text-[11px] font-semibold tracking-[0.08em] text-app-muted uppercase">{label}</p>
-            <p className="mt-1 text-sm font-semibold text-app-navy">{value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap items-start gap-1.5 sm:gap-2">
         {item.factors.map((factor) => (
-          <span key={`${item.contractSymbol}-${factor.label}`} className={cn("rounded-full px-3 py-1 text-xs font-semibold", statusClassName(factor.status))}>
+          <span
+            key={`${item.contractSymbol}-${factor.label}`}
+            className={cn("inline-flex w-fit max-w-full items-center rounded-full px-2.5 py-1 text-xs font-semibold sm:px-3", statusClassName(factor.status))}
+          >
             {factor.label} {factor.value}
           </span>
         ))}
       </div>
+
+      <Collapsible className="group mt-3 rounded-2xl border border-app-line bg-white/70">
+        <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left">
+          <span className="text-xs font-semibold text-app-muted">{text.opportunityDetails}</span>
+          <ChevronDown className="size-4 shrink-0 text-app-muted transition-transform group-data-[state=open]:rotate-180" />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="px-3 pb-3">
+          <div className="grid grid-cols-2 gap-2 border-t border-app-line pt-3 sm:grid-cols-4 lg:grid-cols-7">
+            {[
+              [text.opportunityAnnualizedYield, formatPercent(item.annualizedYield)],
+              [text.opportunityBuffer, formatPercent(item.downsideBuffer)],
+              [text.opportunityDelta, item.delta === null ? "--" : Math.abs(item.delta).toFixed(2)],
+              [text.opportunityBidAsk, item.ask === null ? formatMoney(item.bid) : `${formatMoney(item.bid)} / ${formatMoney(item.ask)}`],
+              [text.opportunityOi, item.openInterest.toLocaleString()],
+              [text.opportunityVolume, item.volume.toLocaleString()],
+              [text.opportunityScore, `${item.score}`]
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-2xl bg-[#f8f5ed] px-3 py-2">
+                <p className="text-[11px] font-semibold tracking-[0.08em] text-app-muted uppercase">{label}</p>
+                <p className="mt-1 text-sm font-semibold text-app-navy">{value}</p>
+              </div>
+            ))}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </article>
   );
 }
@@ -931,11 +929,6 @@ export default function Page() {
                     item={item}
                     rank={index + 1}
                     locale={locale}
-                    onViewReport={(symbol) => {
-                      setSelectedSymbol(symbol);
-                      setQuery(displaySymbol(symbol));
-                      setTab(TAB.REPORT);
-                    }}
                   />
                 ))}
               </div>
