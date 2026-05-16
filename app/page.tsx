@@ -947,38 +947,6 @@ export default function Page() {
               </div>
             ) : null}
 
-            {opportunities && (opportunities.avoided.length > 0 || opportunities.errors.length > 0) ? (
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
-                {opportunities.avoided.length > 0 ? (
-                  <div className="rounded-[24px] border border-app-line bg-white/86 p-4">
-                    <h2 className="text-base font-semibold text-app-navy">{text.opportunitiesAvoidTitle}</h2>
-                    <div className="mt-3 space-y-2">
-                      {opportunities.avoided.map((item) => (
-                        <div key={item.symbol} className="flex items-start justify-between gap-3 rounded-2xl bg-[#f8f5ed] px-3 py-2 text-sm">
-                          <strong className="text-app-navy">{displaySymbol(item.symbol)}</strong>
-                          <span className="text-right text-app-muted">{item.reason}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                {opportunities.errors.length > 0 ? (
-                  <div className="rounded-[24px] border border-app-line bg-white/86 p-4">
-                    <h2 className="text-base font-semibold text-app-navy">{text.opportunitiesErrorsTitle}</h2>
-                    <div className="mt-3 space-y-2">
-                      {opportunities.errors.map((item) => (
-                        <div key={item.symbol} className="flex items-start justify-between gap-3 rounded-2xl bg-rose-50 px-3 py-2 text-sm">
-                          <strong className="text-app-rose">{displaySymbol(item.symbol)}</strong>
-                          <span className="text-right text-app-rose/80">{item.message}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-
             <p className="mt-4 text-xs leading-5 text-app-muted">{text.opportunitiesDisclaimer}</p>
           </section>
         ) : (
