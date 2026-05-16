@@ -74,3 +74,54 @@ export type SellPutReport = {
     latestFilingDateLabel: string;
   };
 };
+
+export type OpportunityFactor = {
+  label: string;
+  value: string;
+  status: "good" | "watch" | "avoid";
+};
+
+export type SellPutOpportunity = {
+  symbol: string;
+  underlyingLast: number;
+  contractSymbol: string;
+  expiryDate: string;
+  strike: number;
+  dte: number;
+  bid: number | null;
+  ask: number | null;
+  last: number | null;
+  volume: number;
+  openInterest: number;
+  delta: number | null;
+  impliedVolatility: number | null;
+  annualizedYield: number | null;
+  downsideBuffer: number;
+  score: number;
+  rating: number;
+  actionLabel: "open" | "cautious" | "avoid";
+  riskLevel: "good" | "watch" | "avoid";
+  eventRisk: {
+    label: string;
+    status: "good" | "watch" | "avoid";
+  };
+  factors: OpportunityFactor[];
+  reasons: string[];
+  risks: string[];
+};
+
+export type SellPutOpportunitiesResponse = {
+  generatedAt: string;
+  tradeDate: string;
+  source: "database" | "generated";
+  universe: string[];
+  candidates: SellPutOpportunity[];
+  avoided: Array<{
+    symbol: string;
+    reason: string;
+  }>;
+  errors: Array<{
+    symbol: string;
+    message: string;
+  }>;
+};

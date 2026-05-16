@@ -102,6 +102,7 @@
       "name": "@tonylaw/db",
       "version": "0.1.0",
       "dependencies": {
+        "@tonylaw/contracts": "workspace:*",
         "postgres": "^3.4.7",
       },
     },

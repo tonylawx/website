@@ -2,12 +2,27 @@ import type { SecuritySearchResult } from "@tonylaw/contracts/report";
 
 type LongbridgeModule = typeof import("longbridge");
 type QuoteContext = Awaited<ReturnType<LongbridgeModule["QuoteContext"]["new"]>>;
+type NaiveDate = InstanceType<LongbridgeModule["NaiveDate"]>;
 
 const NO_ADJUST = 0;
 const DAY_PERIOD = 14;
 const INTRADAY_SESSION = 0;
 const US_MARKET = 1;
 const OVERNIGHT_CATEGORY = 0;
+const CALC_INDEX = {
+  LAST_DONE: 0,
+  VOLUME: 3,
+  EXPIRY_DATE: 18,
+  STRIKE_PRICE: 19,
+  IMPLIED_VOLATILITY: 26,
+  PREMIUM: 24,
+  OPEN_INTEREST: 34,
+  DELTA: 35,
+  GAMMA: 36,
+  THETA: 37,
+  VEGA: 38,
+  RHO: 39
+} as const;
 
 let longbridgeModulePromise: Promise<LongbridgeModule> | null = null;
 let quoteContextPromise: Promise<QuoteContext> | null = null;
@@ -55,6 +70,58 @@ export async function getDailyCandles(symbol: string, count: number) {
 export async function getQuotes(symbols: string[]) {
   const ctx = await getQuoteContext();
   return ctx.quote(symbols);
+}
+
+export async function getOptionChainExpiryDates(symbol: string) {
+  const ctx = await getQuoteContext();
+  return ctx.optionChainExpiryDateList(symbol);
+}
+
+export async function getOptionChainByDate(symbol: string, expiryDate: NaiveDate) {
+  const ctx = await getQuoteContext();
+  return ctx.optionChainInfoByDate(symbol, expiryDate);
+}
+
+export async function getOptionQuotes(symbols: string[]) {
+  if (symbols.length === 0) {
+    return [];
+  }
+
+  const ctx = await getQuoteContext();
+  return ctx.optionQuote(symbols);
+}
+
+export async function getOptionCalcIndexes(symbols: string[]) {
+  if (symbols.length === 0) {
+    return [];
+  }
+
+  const ctx = await getQuoteContext();
+  return ctx.calcIndexes(symbols, [
+    CALC_INDEX.LAST_DONE,
+    CALC_INDEX.VOLUME,
+    CALC_INDEX.OPEN_INTEREST,
+    CALC_INDEX.IMPLIED_VOLATILITY,
+    CALC_INDEX.DELTA,
+    CALC_INDEX.GAMMA,
+    CALC_INDEX.THETA,
+    CALC_INDEX.VEGA,
+    CALC_INDEX.RHO,
+    CALC_INDEX.PREMIUM,
+    CALC_INDEX.STRIKE_PRICE,
+    CALC_INDEX.EXPIRY_DATE
+  ]);
+}
+
+export async function getOptionDepth(symbol: string) {
+  const ctx = await getQuoteContext();
+  return ctx.depth(symbol);
+}
+
+export async function createLongbridgeDate(date: string) {
+  const { NaiveDate } = await getLongbridgeModule();
+  const [year, month, day] = date.split("-").map(Number);
+  return new NaiveDate(year, month, day);
 }
 
 export async function getTradingDays(startDate: string, endDate: string) {

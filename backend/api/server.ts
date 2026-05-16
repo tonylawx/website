@@ -22,6 +22,7 @@ import {
   verifyUserRoute
 } from "./src/modules/auth/routes";
 import { reportRoute } from "./src/modules/optix/report";
+import { sellPutOpportunitiesRoute, startSellPutOpportunityScheduler } from "./src/modules/optix/opportunities";
 import { requireSharedApiAuth } from "./src/modules/optix/require-auth";
 import { securitiesRoute } from "./src/modules/optix/search";
 
@@ -68,8 +69,10 @@ async function bootstrap() {
 
   hono.use("/optix/api/report", requireSharedApiAuth);
   hono.use("/optix/api/securities", requireSharedApiAuth);
+  hono.use("/optix/api/opportunities/*", requireSharedApiAuth);
   hono.get("/optix/api/report", reportRoute);
   hono.get("/optix/api/securities", securitiesRoute);
+  hono.get("/optix/api/opportunities/sell-put", sellPutOpportunitiesRoute);
   hono.get("/optix/health", (c) => c.json({ ok: true }));
 
   hono.get("/health", (c) =>
@@ -91,6 +94,8 @@ async function bootstrap() {
       console.log(`> Unified API ready on http://localhost:${info.port}`);
     }
   );
+
+  startSellPutOpportunityScheduler();
 }
 
 bootstrap().catch((error) => {
