@@ -4,10 +4,12 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@tonylaw/contracts": "workspace:*",
     "postgres": "^3.4.7"
   },
   "exports": {
     "./client": "./src/client.ts",
-    "./auth": "./src/auth.ts"
+    "./auth": "./src/auth.ts",
+    "./opportunities": "./src/opportunities.ts"
   }
 }

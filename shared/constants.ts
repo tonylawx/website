@@ -7,7 +7,8 @@ export type Locale = typeof LOCALE[keyof typeof LOCALE];
 
 export const TAB = {
   REPORT: "report",
-  CALCULATOR: "calculator"
+  CALCULATOR: "calculator",
+  OPPORTUNITIES: "opportunities"
 } as const;
 
 export type TabKey = typeof TAB[keyof typeof TAB];

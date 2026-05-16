@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { cn } from "@/lib/utils";
-import type { SecuritySearchResult, SellPutReport } from "@/server/report/types";
+import type { SecuritySearchResult, SellPutOpportunitiesResponse, SellPutOpportunity, SellPutReport } from "@/server/report/types";
 import { HOSTNAME, LOCALE, SEARCH_BOOTSTRAP_QUERY, TAB, TabKey } from "@/shared/constants";
 import type { Locale } from "@/shared/i18n";
 import { uiCopy } from "@/shared/i18n";
@@ -51,6 +51,40 @@ function normalizeSymbol(symbol?: string | null) {
   }
 
   return trimmed.endsWith(".US") ? trimmed : `${trimmed}.US`;
+}
+
+function formatPercent(value: number | null | undefined, digits = 1) {
+  return typeof value === "number" && Number.isFinite(value) ? `${value.toFixed(digits)}%` : "--";
+}
+
+function formatMoney(value: number | null | undefined, digits = 2) {
+  return typeof value === "number" && Number.isFinite(value) ? `$${value.toFixed(digits)}` : "--";
+}
+
+function formatDateTime(value: string, locale: Locale) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "--";
+  }
+
+  return new Intl.DateTimeFormat(locale === LOCALE.EN ? "en-US" : "zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function statusClassName(status: SellPutOpportunity["riskLevel"] | SellPutOpportunity["eventRisk"]["status"]) {
+  if (status === "good") {
+    return "bg-emerald-50 text-emerald-700";
+  }
+
+  if (status === "watch") {
+    return "bg-amber-50 text-amber-700";
+  }
+
+  return "bg-rose-50 text-app-rose";
 }
 
 function getApiBaseUrl() {
@@ -159,6 +193,104 @@ function ReportSkeleton() {
   );
 }
 
+function OpportunityCard({
+  item,
+  rank,
+  locale,
+  onViewReport
+}: {
+  item: SellPutOpportunity;
+  rank: number;
+  locale: Locale;
+  onViewReport: (symbol: string) => void;
+}) {
+  const text = uiCopy[locale];
+  const stars = `${"★".repeat(item.rating)}${"☆".repeat(5 - item.rating)}`;
+
+  return (
+    <article className="rounded-[26px] border border-app-line bg-white/92 p-3 shadow-app sm:p-4">
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-start">
+        <div className="flex min-w-0 gap-3">
+          <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-2xl text-sm font-bold", statusClassName(item.riskLevel))}>
+            #{rank}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="min-w-0">
+              <h3 className="text-xl font-semibold text-app-navy">
+                {displaySymbol(item.symbol)} ${item.strike.toFixed(0)} Put
+              </h3>
+              <p className="mt-1 truncate text-sm text-app-muted">
+                {item.contractSymbol} · {item.expiryDate.slice(5)} · DTE {item.dte}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2">
+          <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", statusClassName(item.riskLevel))}>
+            {stars} · {item.score}
+          </span>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              void navigator.clipboard?.writeText(item.contractSymbol);
+            }}
+          >
+            {text.opportunitiesCopyContract}
+          </Button>
+          <Button size="sm" onClick={() => onViewReport(item.symbol)}>
+            {text.opportunitiesViewReport}
+          </Button>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+        {[
+          [text.opportunityAnnualizedYield, formatPercent(item.annualizedYield)],
+          [text.opportunityBuffer, formatPercent(item.downsideBuffer)],
+          [text.opportunityDelta, item.delta === null ? "--" : Math.abs(item.delta).toFixed(2)],
+          [text.opportunityBidAsk, item.ask === null ? formatMoney(item.bid) : `${formatMoney(item.bid)} / ${formatMoney(item.ask)}`],
+          [text.opportunityOi, item.openInterest.toLocaleString()],
+          [text.opportunityVolume, item.volume.toLocaleString()],
+          [text.opportunityScore, `${item.score}`]
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-2xl bg-[#f8f5ed] px-3 py-2">
+            <p className="text-[11px] font-semibold tracking-[0.08em] text-app-muted uppercase">{label}</p>
+            <p className="mt-1 text-sm font-semibold text-app-navy">{value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {item.factors.map((factor) => (
+          <span key={`${item.contractSymbol}-${factor.label}`} className={cn("rounded-full px-3 py-1 text-xs font-semibold", statusClassName(factor.status))}>
+            {factor.label} {factor.value}
+          </span>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function OpportunitiesSkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={index} className="rounded-[24px] border border-app-line bg-white/80 p-4 shadow-app animate-pulse">
+          <div className="h-6 w-64 rounded-full bg-app-navy/10" />
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {Array.from({ length: 8 }).map((__, row) => (
+              <div key={row} className="h-14 rounded-2xl bg-app-navy/6" />
+            ))}
+          </div>
+          <div className="mt-4 h-20 rounded-2xl bg-app-navy/6" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Page() {
   const [locale, setLocale] = useState<Locale>(LOCALE.ZH);
   const [tab, setTab] = useState<TabKey>(TAB.REPORT);
@@ -166,14 +298,17 @@ export default function Page() {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [currentUrl, setCurrentUrl] = useState("");
   const [report, setReport] = useState<SellPutReport | null>(null);
+  const [opportunities, setOpportunities] = useState<SellPutOpportunitiesResponse | null>(null);
   const [selectedSymbol, setSelectedSymbol] = useState(DEFAULT_SYMBOL);
   const [query, setQuery] = useState(displaySymbol(DEFAULT_SYMBOL));
   const [securities, setSecurities] = useState<SecuritySearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(true);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
+  const [isLoadingOpportunities, setIsLoadingOpportunities] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [reportError, setReportError] = useState("");
+  const [opportunitiesError, setOpportunitiesError] = useState("");
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement | null>(null);
   const attemptedRemoteQueryRef = useRef<string>("");
@@ -188,7 +323,13 @@ export default function Page() {
 
     const params = new URLSearchParams(window.location.search);
     const nextSymbol = normalizeSymbol(params.get("symbol"));
-    const nextTab = params.get("tab") === TAB.CALCULATOR ? TAB.CALCULATOR : TAB.REPORT;
+    const rawTab = params.get("tab");
+    const nextTab =
+      rawTab === TAB.CALCULATOR
+        ? TAB.CALCULATOR
+        : rawTab === TAB.OPPORTUNITIES
+          ? TAB.OPPORTUNITIES
+          : TAB.REPORT;
     setTab(nextTab);
     setSelectedSymbol(nextSymbol);
     setQuery(displaySymbol(nextSymbol));
@@ -386,6 +527,72 @@ export default function Page() {
   }, [selectedSymbol, locale]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadOpportunities() {
+      setIsLoadingOpportunities(true);
+      setOpportunitiesError("");
+
+      try {
+        const response = await fetch(`${getApiBaseUrl()}/api/opportunities/sell-put?locale=${locale}`, {
+          cache: "no-store",
+          credentials: "include"
+        });
+
+        if (!response.ok) {
+          const payload = (await response.json()) as { error?: string };
+          throw new Error(payload.error ?? `Failed to load opportunities: ${response.status}`);
+        }
+
+        const nextOpportunities = (await response.json()) as SellPutOpportunitiesResponse;
+        if (!cancelled) {
+          setOpportunities(nextOpportunities);
+        }
+      } catch {
+        if (!cancelled) {
+          setOpportunities(null);
+          setOpportunitiesError(uiCopy[locale].opportunitiesLoadFailure);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingOpportunities(false);
+        }
+      }
+    }
+
+    if (tab === TAB.OPPORTUNITIES) {
+      void loadOpportunities();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [locale, tab]);
+
+  async function refreshOpportunities() {
+    setIsLoadingOpportunities(true);
+    setOpportunitiesError("");
+
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/opportunities/sell-put?refresh=true&locale=${locale}`, {
+        cache: "no-store",
+        credentials: "include"
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string };
+        throw new Error(payload.error ?? `Failed to refresh opportunities: ${response.status}`);
+      }
+
+      setOpportunities((await response.json()) as SellPutOpportunitiesResponse);
+    } catch {
+      setOpportunitiesError(uiCopy[locale].opportunitiesLoadFailure);
+    } finally {
+      setIsLoadingOpportunities(false);
+    }
+  }
+
+  useEffect(() => {
     const cached = readCachedSecurities();
     if (cached.length > 0) {
       setSecurities(cached);
@@ -533,6 +740,7 @@ export default function Page() {
   const showSearchClear = isSearchFocused && Boolean(query) && !isLoadingReport && !isSearching;
   const tabOptions = [
     { value: TAB.REPORT, label: text.reportTab },
+    { value: TAB.OPPORTUNITIES, label: text.opportunitiesTab },
     { value: TAB.CALCULATOR, label: text.calculatorTab }
   ] as const;
   const localeOptions = [
@@ -683,6 +891,96 @@ export default function Page() {
             {report ? <ReportPage report={report} compact locale={locale} /> : null}
             {!report && isLoadingReport ? <ReportSkeleton /> : null}
           </>
+        ) : tab === TAB.OPPORTUNITIES ? (
+          <section className="rounded-[28px] border border-app-line bg-[#fffaf2]/86 p-3 shadow-app sm:p-5">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h1 className="text-2xl font-semibold text-app-navy">{text.opportunitiesTitle}</h1>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-app-muted">{text.opportunitiesSubtitle}</p>
+                {opportunities ? (
+                  <p className="mt-2 text-xs font-medium text-app-muted">
+                    {text.opportunitiesGeneratedAt}: {formatDateTime(opportunities.generatedAt, locale)}
+                  </p>
+                ) : null}
+              </div>
+
+              <Button
+                className="rounded-full"
+                disabled={isLoadingOpportunities}
+                onClick={() => {
+                  void refreshOpportunities();
+                }}
+              >
+                {isLoadingOpportunities ? text.loading : text.opportunitiesRefresh}
+              </Button>
+            </div>
+
+            {opportunitiesError ? (
+              <p className="mb-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-app-rose">
+                {opportunitiesError}
+              </p>
+            ) : null}
+
+            {isLoadingOpportunities && !opportunities ? <OpportunitiesSkeleton /> : null}
+
+            {opportunities && opportunities.candidates.length > 0 ? (
+              <div className="space-y-3">
+                {opportunities.candidates.map((item, index) => (
+                  <OpportunityCard
+                    key={item.contractSymbol}
+                    item={item}
+                    rank={index + 1}
+                    locale={locale}
+                    onViewReport={(symbol) => {
+                      setSelectedSymbol(symbol);
+                      setQuery(displaySymbol(symbol));
+                      setTab(TAB.REPORT);
+                    }}
+                  />
+                ))}
+              </div>
+            ) : null}
+
+            {opportunities && opportunities.candidates.length === 0 && !isLoadingOpportunities ? (
+              <div className="rounded-[24px] border border-app-line bg-white/90 p-5 text-sm font-medium text-app-muted">
+                {text.opportunitiesNoCandidates}
+              </div>
+            ) : null}
+
+            {opportunities && (opportunities.avoided.length > 0 || opportunities.errors.length > 0) ? (
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                {opportunities.avoided.length > 0 ? (
+                  <div className="rounded-[24px] border border-app-line bg-white/86 p-4">
+                    <h2 className="text-base font-semibold text-app-navy">{text.opportunitiesAvoidTitle}</h2>
+                    <div className="mt-3 space-y-2">
+                      {opportunities.avoided.map((item) => (
+                        <div key={item.symbol} className="flex items-start justify-between gap-3 rounded-2xl bg-[#f8f5ed] px-3 py-2 text-sm">
+                          <strong className="text-app-navy">{displaySymbol(item.symbol)}</strong>
+                          <span className="text-right text-app-muted">{item.reason}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {opportunities.errors.length > 0 ? (
+                  <div className="rounded-[24px] border border-app-line bg-white/86 p-4">
+                    <h2 className="text-base font-semibold text-app-navy">{text.opportunitiesErrorsTitle}</h2>
+                    <div className="mt-3 space-y-2">
+                      {opportunities.errors.map((item) => (
+                        <div key={item.symbol} className="flex items-start justify-between gap-3 rounded-2xl bg-rose-50 px-3 py-2 text-sm">
+                          <strong className="text-app-rose">{displaySymbol(item.symbol)}</strong>
+                          <span className="text-right text-app-rose/80">{item.message}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            <p className="mt-4 text-xs leading-5 text-app-muted">{text.opportunitiesDisclaimer}</p>
+          </section>
         ) : (
           <OptionYieldCalculator locale={locale} />
         )}
